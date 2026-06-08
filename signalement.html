@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Signalement Citoyen — Mairie</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --blue:#1a56db;--blue-light:#eff6ff;--green:#16a34a;--red:#dc2626;
+      --orange:#ea580c;--yellow:#d97706;--gray:#6b7280;--bg:#f1f5f9;
+    }
+    body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:#1e293b;min-height:100vh;}
+
+    /* NAV */
+    nav{background:var(--blue);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;}
+    nav a{color:#fff;text-decoration:none;font-size:.85rem;opacity:.8;}
+    nav a:hover{opacity:1;}
+    nav .logo{font-size:1.1rem;font-weight:700;flex:1;}
+    .nav-badge{background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:.78rem;}
+
+    /* TABS */
+    .page-tabs{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;position:sticky;top:52px;z-index:100;}
+    .ptab{flex:1;padding:13px 8px;text-align:center;font-size:.88rem;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;transition:.2s;}
+    .ptab.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+    .page{display:none;padding:16px;max-width:700px;margin:0 auto;}
+    .page.active{display:block;}
+
+    /* FORM CARD */
+    .card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:16px;}
+    .card h2{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+    label{display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:5px;margin-top:12px;}
+    label:first-of-type{margin-top:0;}
+    input,textarea,select{width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:.9rem;font-family:inherit;outline:none;transition:.2s;}
+    input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+    textarea{resize:vertical;min-height:80px;}
+
+    /* TYPE SELECTOR */
+    .type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px;}
+    .type-opt{border:2px solid #e2e8f0;border-radius:10px;padding:12px;cursor:pointer;text-align:center;transition:.2s;}
+    .type-opt:hover{border-color:var(--blue);}
+    .type-opt.selected{border-color:var(--blue);background:var(--blue-light);}
+    .type-opt .ico{font-size:1.6rem;margin-bottom:4px;}
+    .type-opt .lbl{font-size:.78rem;font-weight:600;color:#374151;}
+
+    /* PHOTO */
+    .photo-zone{border:2px dashed #d1d5db;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+    .photo-zone:hover{border-color:var(--blue);}
+    .photo-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+    .photo-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+    .photo-preview img{width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e2e8f0;}
+    .del-photo{position:relative;}
+    .del-photo::after{content:"✕";position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.65rem;cursor:pointer;}
+
+    /* GPS */
+    .gps-bar{display:flex;gap:8px;align-items:center;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;}
+    .gps-bar .coords{flex:1;font-size:.82rem;color:#374151;}
+    .gps-btn{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;}
+    .gps-btn:hover{background:#1447b3;}
+    .gps-status{font-size:.75rem;margin-top:5px;}
+    .gps-ok{color:var(--green);}
+    .gps-err{color:var(--red);}
+
+    /* MAP */
+    #map-picker{height:220px;border-radius:10px;margin-top:10px;border:1.5px solid #e2e8f0;}
+
+    /* SUBMIT */
+    .btn-submit{width:100%;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;transition:.2s;}
+    .btn-submit:hover{background:#1447b3;}
+    .btn-submit:disabled{background:#94a3b8;cursor:not-allowed;}
+
+    /* LISTE */
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+    .filter-btn{padding:6px 14px;border-radius:20px;border:1.5px solid #d1d5db;background:#fff;font-size:.8rem;font-weight:600;cursor:pointer;transition:.2s;}
+    .filter-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+    .sig-item{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px;display:flex;gap:12px;cursor:pointer;transition:.2s;}
+    .sig-item:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.1);}
+    .sig-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.8rem;}
+    .sig-body{flex:1;min-width:0;}
+    .sig-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+    .sig-title{font-size:.9rem;font-weight:700;}
+    .sig-badge{font-size:.7rem;padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap;}
+    .badge-nouveau{background:#dbeafe;color:#1d4ed8;}
+    .badge-en_cours{background:#fef3c7;color:#92400e;}
+    .badge-résolu{background:#dcfce7;color:#15803d;}
+    .sig-meta{font-size:.75rem;color:var(--gray);margin-top:4px;}
+    .sig-desc{font-size:.82rem;color:#374151;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* CARTE */
+    #map-list{height:450px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
+    .modal-overlay.show{display:flex;}
+    .modal{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .modal-header{padding:18px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;}
+    .modal-header h3{font-size:1rem;font-weight:700;}
+    .close-modal{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray);}
+    .modal-body{padding:20px;}
+    .modal-img{width:100%;border-radius:10px;margin-bottom:14px;max-height:200px;object-fit:cover;}
+    .detail-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:.85rem;}
+    .detail-row strong{color:#374151;min-width:80px;}
+    .status-select{width:100%;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:.85rem;}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;font-size:.88rem;font-weight:600;z-index:600;transition:.3s;opacity:0;}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+    /* EMPTY */
+    .empty{text-align:center;padding:40px 20px;color:var(--gray);}
+    .empty .ico{font-size:3rem;margin-bottom:12px;}
+
+    /* STATS BAR */
+    .stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+    .stat-card{background:#fff;border-radius:10px;padding:14px 10px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06);}
+    .stat-num{font-size:1.5rem;font-weight:800;color:var(--blue);}
+    .stat-lbl{font-size:.72rem;color:var(--gray);margin-top:2px;}
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🏛️ Mairie Numérique</span>
+  <a href="alertes.html">Alertes</a>
+  <a href="index.html">Accueil</a>
+</nav>
+
+<div class="page-tabs">
+  <div class="ptab active" onclick="showPage('form')">📝 Signaler</div>
+  <div class="ptab" onclick="showPage('liste')">📋 Mes signalements</div>
+  <div class="ptab" onclick="showPage('carte')">🗺️ Carte</div>
+</div>
+
+<!-- PAGE FORMULAIRE -->
+<div id="form" class="page active">
+  <div class="card">
+    <h2>🚨 Nouveau signalement</h2>
+
+    <label>Type de problème</label>
+    <div class="type-grid">
+      <div class="type-opt selected" data-type="route" onclick="selectType(this,'route')">
+        <div class="ico">🛣️</div><div class="lbl">Route abîmée</div>
+      </div>
+      <div class="type-opt" data-type="eclairage" onclick="selectType(this,'eclairage')">
+        <div class="ico">💡</div><div class="lbl">Éclairage cassé</div>
+      </div>
+      <div class="type-opt" data-type="ordures" onclick="selectType(this,'ordures')">
+        <div class="ico">🗑️</div><div class="lbl">Ordures / Déchets</div>
+      </div>
+      <div class="type-opt" data-type="autre" onclick="selectType(this,'autre')">
+        <div class="ico">⚠️</div><div class="lbl">Autre problème</div>
+      </div>
+    </div>
+
+    <label>Description</label>
+    <textarea id="desc" placeholder="Décrivez le problème en détail..."></textarea>
+
+    <label>Quartier</label>
+    <select id="quartier">
+      <option value="">-- Sélectionner --</option>
+      <option>Centre-ville</option>
+      <option>Quartier Nord</option>
+      <option>Quartier Sud</option>
+      <option>Marché Central</option>
+      <option>Zone Industrielle</option>
+      <option>Résidentiel Est</option>
+    </select>
+
+    <label>Photos (optionnel)</label>
+    <div class="photo-zone" id="photoZone">
+      <div style="font-size:1.8rem">📷</div>
+      <div style="font-size:.85rem;color:var(--gray);margin-top:4px">Appuyez pour ajouter des photos</div>
+      <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotos(this)"/>
+    </div>
+    <div class="photo-preview" id="photoPreview"></div>
+
+    <label>Localisation GPS</label>
+    <div class="gps-bar">
+      <div class="coords" id="coordsText">Position non détectée</div>
+      <button class="gps-btn" onclick="getGPS()">📍 Détecter</button>
+    </div>
+    <div class="gps-status" id="gpsStatus"></div>
+    <div id="map-picker"></div>
+
+    <br/>
+    <button class="btn-submit" id="submitBtn" onclick="soumettre()">✅ Envoyer le signalement</button>
+  </div>
+</div>
+
+<!-- PAGE LISTE -->
+<div id="liste" class="page">
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-num" id="stTotal">0</div><div class="stat-lbl">Total</div></div>
+    <div class="stat-card"><div class="stat-num" id="stEnCours" style="color:var(--yellow)">0</div><div class="stat-lbl">En cours</div></div>
+    <div class="stat-card"><div class="stat-num" id="stResolu" style="color:var(--green)">0</div><div class="stat-lbl">Résolus</div></div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn on" onclick="filtrer(this,'tous')">Tous</button>
+    <button class="filter-btn" onclick="filtrer(this,'nouveau')">🔵 Nouveau</button>
+    <button class="filter-btn" onclick="filtrer(this,'en_cours')">🟡 En cours</button>
+    <button class="filter-btn" onclick="filtrer(this,'résolu')">🟢 Résolu</button>
+  </div>
+
+  <div id="listeContainer"></div>
+</div>
+
+<!-- PAGE CARTE -->
+<div id="carte" class="page">
+  <div class="card" style="padding:14px">
+    <h2>🗺️ Carte des signalements</h2>
+    <p style="font-size:.82rem;color:var(--gray);margin-top:-8px">Cliquez sur un marqueur pour voir les détails</p>
+  </div>
+  <div id="map-list"></div>
+</div>
+
+<!-- MODAL DÉTAIL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Détail du signalement</h3>
+      <button class="close-modal" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TYPES = {
+  route:{label:'Route abîmée',ico:'🛣️'},
+  eclairage:{label:'Éclairage cassé',ico:'💡'},
+  ordures:{label:'Ordures / Déchets',ico:'🗑️'},
+  autre:{label:'Autre problème',ico:'⚠️'}
+};
+
+let currentType = 'route';
+let photos = [];
+let gpsCoords = null;
+let mapPicker = null;
+let mapList = null;
+let pinMarker = null;
+let filtreActif = 'tous';
+
+// ---- DONNÉES DEMO ----
+function getData(){
+  const raw = localStorage.getItem('signalements');
+  if(raw) return JSON.parse(raw);
+  const demo = [
+    {id:1,type:'route',desc:'Grand nid de poule devant l\'école primaire, dangereux pour les enfants.',quartier:'Centre-ville',lat:12.365,lng:15.044,statut:'en_cours',date:'2026-06-06',photo:null},
+    {id:2,type:'eclairage',desc:'Lampadaire en panne depuis 3 semaines rue du marché.',quartier:'Marché Central',lat:12.362,lng:15.041,statut:'nouveau',date:'2026-06-07',photo:null},
+    {id:3,type:'ordures',desc:'Dépôt sauvage d\'ordures à l\'angle de la rue.',quartier:'Quartier Nord',lat:12.368,lng:15.048,statut:'résolu',date:'2026-06-05',photo:null},
+  ];
+  localStorage.setItem('signalements',JSON.stringify(demo));
+  return demo;
+}
+function saveData(d){localStorage.setItem('signalements',JSON.stringify(d));}
+
+// ---- INIT MAPS ----
+window.addEventListener('load',()=>{
+  // map picker
+  mapPicker = L.map('map-picker',{zoomControl:true}).setView([12.365,15.044],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapPicker);
+  mapPicker.on('click',e=>{
+    gpsCoords={lat:e.latlng.lat,lng:e.latlng.lng};
+    placePinPicker(e.latlng.lat,e.latlng.lng);
+    document.getElementById('coordsText').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+    document.getElementById('gpsStatus').innerHTML='<span class="gps-ok">✓ Position sélectionnée sur la carte</span>';
+  });
+  // map list
+  mapList = L.map('map-list').setView([12.365,15.044],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapList);
+  renderListe();
+  renderCarte();
+});
+
+function placePinPicker(lat,lng){
+  if(pinMarker) mapPicker.removeLayer(pinMarker);
+  pinMarker = L.marker([lat,lng]).addTo(mapPicker);
+}
+
+// ---- TYPE ----
+function selectType(el,t){
+  document.querySelectorAll('.type-opt').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  currentType=t;
+}
+
+// ---- PHOTOS ----
+function handlePhotos(input){
+  const files = Array.from(input.files);
+  photos = [];
+  const preview = document.getElementById('photoPreview');
+  preview.innerHTML='';
+  files.slice(0,4).forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      photos.push(e.target.result);
+      const img=document.createElement('img');
+      img.src=e.target.result;
+      img.className='del-photo';
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+// ---- GPS ----
+function getGPS(){
+  const btn=document.querySelector('.gps-btn');
+  const status=document.getElementById('gpsStatus');
+  btn.textContent='⏳ Localisation...';
+  btn.disabled=true;
+  if(!navigator.geolocation){
+    status.innerHTML='<span class="gps-err">GPS non disponible sur ce navigateur.</span>';
+    btn.textContent='📍 Détecter'; btn.disabled=false; return;
+  }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    gpsCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    document.getElementById('coordsText').textContent=`${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)}`;
+    status.innerHTML='<span class="gps-ok">✓ Position GPS détectée avec précision</span>';
+    mapPicker.setView([gpsCoords.lat,gpsCoords.lng],16);
+    placePinPicker(gpsCoords.lat,gpsCoords.lng);
+    btn.textContent='📍 Détecter'; btn.disabled=false;
+  },err=>{
+    status.innerHTML='<span class="gps-err">Impossible de détecter — cliquez sur la carte.</span>';
+    btn.textContent='📍 Détecter'; btn.disabled=false;
+  });
+}
+
+// ---- SOUMETTRE ----
+function soumettre(){
+  const desc=document.getElementById('desc').value.trim();
+  const quartier=document.getElementById('quartier').value;
+  if(!desc){showToast('⚠️ Veuillez décrire le problème'); return;}
+  if(!quartier){showToast('⚠️ Veuillez sélectionner un quartier'); return;}
+
+  const data=getData();
+  const id=Date.now();
+  data.unshift({
+    id,type:currentType,desc,quartier,
+    lat:gpsCoords?gpsCoords.lat:12.365+(Math.random()-.5)*.01,
+    lng:gpsCoords?gpsCoords.lng:15.044+(Math.random()-.5)*.01,
+    statut:'nouveau',
+    date:new Date().toISOString().slice(0,10),
+    photo:photos[0]||null
+  });
+  saveData(data);
+  // reset
+  document.getElementById('desc').value='';
+  document.getElementById('quartier').value='';
+  document.getElementById('photoPreview').innerHTML='';
+  photos=[];gpsCoords=null;
+  document.getElementById('coordsText').textContent='Position non détectée';
+  document.getElementById('gpsStatus').innerHTML='';
+  showToast('✅ Signalement envoyé avec succès !');
+  showPage('liste');
+}
+
+// ---- LISTE ----
+function renderListe(){
+  const data=getData();
+  const filtered=filtreActif==='tous'?data:data.filter(x=>x.statut===filtreActif);
+  const tous=data.length;
+  const enCours=data.filter(x=>x.statut==='en_cours').length;
+  const resolu=data.filter(x=>x.statut==='résolu').length;
+  document.getElementById('stTotal').textContent=tous;
+  document.getElementById('stEnCours').textContent=enCours;
+  document.getElementById('stResolu').textContent=resolu;
+
+  const c=document.getElementById('listeContainer');
+  if(!filtered.length){
+    c.innerHTML=`<div class="empty"><div class="ico">📭</div><p>Aucun signalement trouvé</p></div>`;
+    return;
+  }
+  c.innerHTML=filtered.map(s=>`
+    <div class="sig-item" onclick="openModal(${s.id})">
+      <div class="sig-thumb">
+        ${s.photo?`<img src="${s.photo}" style="width:64px;height:64px;border-radius:8px;object-fit:cover">`:`<span>${TYPES[s.type]?.ico||'⚠️'}</span>`}
+      </div>
+      <div class="sig-body">
+        <div class="sig-head">
+          <div class="sig-title">${TYPES[s.type]?.label||s.type}</div>
+          <span class="sig-badge badge-${s.statut}">${s.statut.replace('_',' ')}</span>
+        </div>
+        <div class="sig-meta">📍 ${s.quartier} &nbsp;·&nbsp; 📅 ${s.date}</div>
+        <div class="sig-desc">${s.desc}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filtrer(btn,val){
+  filtreActif=val;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderListe();
+}
+
+// ---- CARTE ----
+function renderCarte(){
+  getData().forEach(s=>{
+    const ico=TYPES[s.type]?.ico||'⚠️';
+    const color=s.statut==='résolu'?'#16a34a':s.statut==='en_cours'?'#d97706':'#dc2626';
+    const marker=L.circleMarker([s.lat,s.lng],{radius:10,fillColor:color,color:'#fff',weight:2,fillOpacity:.9})
+      .addTo(mapList)
+      .bindPopup(`<b>${ico} ${TYPES[s.type]?.label}</b><br>${s.quartier}<br><small>${s.statut}</small>`);
+  });
+  setTimeout(()=>mapList.invalidateSize(),200);
+}
+
+// ---- MODAL ----
+function openModal(id){
+  const s=getData().find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('modalTitle').textContent=`${TYPES[s.type]?.ico} ${TYPES[s.type]?.label}`;
+  document.getElementById('modalBody').innerHTML=`
+    ${s.photo?`<img class="modal-img" src="${s.photo}">`:''}
+    <div class="detail-row"><strong>Quartier</strong> 📍 ${s.quartier}</div>
+    <div class="detail-row"><strong>Date</strong> 📅 ${s.date}</div>
+    <div class="detail-row"><strong>GPS</strong> 🌐 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div>
+    <div class="detail-row" style="align-items:flex-start"><strong>Description</strong> <span>${s.desc}</span></div>
+    <div style="margin-top:14px">
+      <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">Mettre à jour le statut :</label>
+      <select class="status-select" onchange="updateStatut(${id},this.value)">
+        <option value="nouveau" ${s.statut==='nouveau'?'selected':''}>🔵 Nouveau</option>
+        <option value="en_cours" ${s.statut==='en_cours'?'selected':''}>🟡 En cours</option>
+        <option value="résolu" ${s.statut==='résolu'?'selected':''}>🟢 Résolu</option>
+      </select>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+function updateStatut(id,val){
+  const data=getData();
+  const s=data.find(x=>x.id===id);
+  if(s){s.statut=val;saveData(data);renderListe();renderCarte();}
+  showToast('✅ Statut mis à jour');
+  closeModal();
+}
+
+// ---- PAGES ----
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx=['form','liste','carte'].indexOf(id);
+  document.querySelectorAll('.ptab')[idx].classList.add('active');
+  if(id==='liste') renderListe();
+  if(id==='carte'){setTimeout(()=>mapList.invalidateSize(),100);}
+}
+
+// ---- TOAST ----
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal')) closeModal();
+});
+</script>
+</body>
+</html>

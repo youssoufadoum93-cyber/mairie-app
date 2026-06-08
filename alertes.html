@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Alertes & Actualités — Mairie</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --blue:#1a56db;--blue-light:#eff6ff;
+      --red:#dc2626;--red-light:#fef2f2;
+      --orange:#ea580c;--orange-light:#fff7ed;
+      --green:#16a34a;--green-light:#f0fdf4;
+      --purple:#7c3aed;--purple-light:#f5f3ff;
+      --gray:#6b7280;--bg:#f1f5f9;
+    }
+    body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:#1e293b;min-height:100vh;}
+
+    nav{background:var(--blue);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;}
+    nav .logo{font-size:1.1rem;font-weight:700;flex:1;}
+    nav a{color:#fff;text-decoration:none;font-size:.85rem;opacity:.8;}
+    nav a:hover{opacity:1;}
+
+    .page-tabs{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;position:sticky;top:52px;z-index:100;}
+    .ptab{flex:1;padding:13px 8px;text-align:center;font-size:.85rem;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;transition:.2s;}
+    .ptab.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+    .page{display:none;padding:16px;max-width:700px;margin:0 auto;}
+    .page.active{display:block;}
+
+    .card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:16px;}
+    .card h2{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+    label{display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:5px;margin-top:12px;}
+    input,textarea,select{width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:.9rem;font-family:inherit;outline:none;transition:.2s;}
+    input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+    textarea{resize:vertical;min-height:80px;}
+
+    /* URGENCE SELECTOR */
+    .urgence-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px;}
+    @media(min-width:500px){.urgence-grid{grid-template-columns:repeat(4,1fr);}}
+    .urg-opt{border:2px solid #e2e8f0;border-radius:10px;padding:12px 8px;cursor:pointer;text-align:center;transition:.2s;}
+    .urg-opt:hover{transform:translateY(-2px);}
+    .urg-opt.selected{transform:translateY(-2px);}
+    .urg-opt[data-u="urgence"].selected{border-color:var(--red);background:var(--red-light);}
+    .urg-opt[data-u="alerte"].selected{border-color:var(--orange);background:var(--orange-light);}
+    .urg-opt[data-u="info"].selected{border-color:var(--blue);background:var(--blue-light);}
+    .urg-opt[data-u="evenement"].selected{border-color:var(--green);background:var(--green-light);}
+    .urg-ico{font-size:1.5rem;margin-bottom:4px;}
+    .urg-lbl{font-size:.73rem;font-weight:700;}
+
+    /* QUARTIERS CHECKBOXES */
+    .quartiers-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+    .q-check{display:none;}
+    .q-label{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border:1.5px solid #d1d5db;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.2s;user-select:none;}
+    .q-check:checked + .q-label{background:var(--blue);color:#fff;border-color:var(--blue);}
+    .select-all-btn{font-size:.78rem;color:var(--blue);cursor:pointer;text-decoration:underline;margin-top:6px;display:inline-block;}
+
+    /* PLANNING */
+    .planning-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+    /* SUBMIT */
+    .btn-submit{width:100%;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;transition:.2s;}
+    .btn-submit:hover{background:#1447b3;}
+
+    /* PREVIEW CARD */
+    .preview-card{border-radius:12px;padding:16px;border-left:5px solid;margin-top:14px;}
+    .preview-card.urgence{border-color:var(--red);background:var(--red-light);}
+    .preview-card.alerte{border-color:var(--orange);background:var(--orange-light);}
+    .preview-card.info{border-color:var(--blue);background:var(--blue-light);}
+    .preview-card.evenement{border-color:var(--green);background:var(--green-light);}
+    .preview-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+    .preview-card.urgence .preview-label{color:var(--red);}
+    .preview-card.alerte .preview-label{color:var(--orange);}
+    .preview-card.info .preview-label{color:var(--blue);}
+    .preview-card.evenement .preview-label{color:var(--green);}
+
+    /* FILTERS */
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+    .filter-btn{padding:6px 14px;border-radius:20px;border:1.5px solid #d1d5db;background:#fff;font-size:.78rem;font-weight:600;cursor:pointer;transition:.2s;}
+    .filter-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+    .q-filter{padding:6px 14px;border-radius:20px;border:1.5px solid #d1d5db;background:#fff;font-size:.78rem;font-weight:600;cursor:pointer;outline:none;}
+
+    /* ALERTE CARD */
+    .alerte-card{background:#fff;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:14px;transition:.2s;}
+    .alerte-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.1);}
+    .alerte-stripe{height:5px;}
+    .alerte-stripe.urgence{background:var(--red);}
+    .alerte-stripe.alerte{background:var(--orange);}
+    .alerte-stripe.info{background:var(--blue);}
+    .alerte-stripe.evenement{background:var(--green);}
+    .alerte-inner{padding:16px;}
+    .alerte-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+    .alerte-type{font-size:.7rem;font-weight:700;text-transform:uppercase;padding:2px 10px;border-radius:20px;}
+    .type-urgence{background:var(--red-light);color:var(--red);}
+    .type-alerte{background:var(--orange-light);color:var(--orange);}
+    .type-info{background:var(--blue-light);color:var(--blue);}
+    .type-evenement{background:var(--green-light);color:var(--green);}
+    .alerte-title{font-size:.95rem;font-weight:700;margin-bottom:6px;}
+    .alerte-body{font-size:.85rem;color:#374151;line-height:1.5;margin-bottom:10px;}
+    .alerte-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:var(--gray);}
+    .alerte-quartiers{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+    .q-chip{background:#f1f5f9;border-radius:20px;padding:3px 10px;font-size:.73rem;color:#374151;}
+    .new-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;margin-right:4px;vertical-align:middle;animation:pulse 1s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+    /* ALERTE URGENTE (banner) */
+    .urgent-banner{background:var(--red);color:#fff;border-radius:12px;padding:16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start;}
+    .urgent-banner .ico{font-size:2rem;flex-shrink:0;}
+    .urgent-banner h3{font-size:1rem;font-weight:700;margin-bottom:4px;}
+    .urgent-banner p{font-size:.85rem;opacity:.9;}
+
+    /* STATS */
+    .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+    .stat-card{background:#fff;border-radius:10px;padding:12px 8px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06);}
+    .stat-num{font-size:1.3rem;font-weight:800;}
+    .stat-lbl{font-size:.68rem;color:var(--gray);margin-top:2px;}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
+    .modal-overlay.show{display:flex;}
+    .modal{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .modal-header{padding:18px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;}
+    .modal-header h3{font-size:1rem;font-weight:700;}
+    .close-modal{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--gray);}
+    .modal-body{padding:20px;}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;font-size:.88rem;font-weight:600;z-index:600;transition:.3s;opacity:0;}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+    /* NOTIF TRAY */
+    .notif-tray{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden;}
+    .notif-item{padding:14px 16px;border-bottom:1px solid #f1f5f9;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:.15s;}
+    .notif-item:last-child{border-bottom:none;}
+    .notif-item:hover{background:#f8fafc;}
+    .notif-item.unread{background:#eff6ff;}
+    .notif-ico{font-size:1.5rem;flex-shrink:0;}
+    .notif-text strong{font-size:.88rem;font-weight:700;}
+    .notif-text p{font-size:.8rem;color:var(--gray);margin-top:2px;}
+    .notif-time{font-size:.72rem;color:var(--gray);margin-top:4px;}
+
+    .empty{text-align:center;padding:40px 20px;color:var(--gray);}
+    .empty .ico{font-size:3rem;margin-bottom:12px;}
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🏛️ Mairie Numérique</span>
+  <a href="signalement.html">Signalements</a>
+  <a href="index.html">Accueil</a>
+</nav>
+
+<div class="page-tabs">
+  <div class="ptab active" onclick="showPage('citoyen')">🔔 Alertes</div>
+  <div class="ptab" onclick="showPage('admin')">🏛️ Publier</div>
+  <div class="ptab" onclick="showPage('notifs')">📬 Notifications</div>
+</div>
+
+<!-- PAGE CITOYEN : FEED ALERTES -->
+<div id="citoyen" class="page active">
+
+  <!-- Banner d'alerte urgente si existe -->
+  <div id="urgentBanner" style="display:none"></div>
+
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-num" id="stUrgence" style="color:var(--red)">0</div><div class="stat-lbl">Urgences</div></div>
+    <div class="stat-card"><div class="stat-num" id="stAlerte" style="color:var(--orange)">0</div><div class="stat-lbl">Alertes</div></div>
+    <div class="stat-card"><div class="stat-num" id="stInfo" style="color:var(--blue)">0</div><div class="stat-lbl">Infos</div></div>
+    <div class="stat-card"><div class="stat-num" id="stEvenement" style="color:var(--green)">0</div><div class="stat-lbl">Événements</div></div>
+  </div>
+
+  <!-- Sélecteur quartier citoyen -->
+  <div class="card" style="padding:14px;display:flex;gap:10px;align-items:center">
+    <span style="font-size:.85rem;font-weight:600;white-space:nowrap">Mon quartier :</span>
+    <select id="monQuartier" onchange="renderFeed()" style="flex:1;padding:8px 10px;">
+      <option value="tous">Tous les quartiers</option>
+      <option>Centre-ville</option>
+      <option>Quartier Nord</option>
+      <option>Quartier Sud</option>
+      <option>Marché Central</option>
+      <option>Zone Industrielle</option>
+      <option>Résidentiel Est</option>
+    </select>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn on" onclick="filtrerFeed(this,'tous')">Tous</button>
+    <button class="filter-btn" onclick="filtrerFeed(this,'urgence')">🔴 Urgence</button>
+    <button class="filter-btn" onclick="filtrerFeed(this,'alerte')">🟠 Alerte</button>
+    <button class="filter-btn" onclick="filtrerFeed(this,'info')">🔵 Info</button>
+    <button class="filter-btn" onclick="filtrerFeed(this,'evenement')">🟢 Événement</button>
+  </div>
+
+  <div id="feedContainer"></div>
+</div>
+
+<!-- PAGE ADMIN : PUBLIER -->
+<div id="admin" class="page">
+  <div class="card">
+    <h2>📢 Publier une alerte / actualité</h2>
+
+    <label>Niveau d'urgence</label>
+    <div class="urgence-grid">
+      <div class="urg-opt selected" data-u="urgence" onclick="selectUrgence(this,'urgence')">
+        <div class="urg-ico">🚨</div><div class="urg-lbl">Urgence</div>
+      </div>
+      <div class="urg-opt" data-u="alerte" onclick="selectUrgence(this,'alerte')">
+        <div class="urg-ico">⚠️</div><div class="urg-lbl">Alerte</div>
+      </div>
+      <div class="urg-opt" data-u="info" onclick="selectUrgence(this,'info')">
+        <div class="urg-ico">ℹ️</div><div class="urg-lbl">Information</div>
+      </div>
+      <div class="urg-opt" data-u="evenement" onclick="selectUrgence(this,'evenement')">
+        <div class="urg-ico">🎉</div><div class="urg-lbl">Événement</div>
+      </div>
+    </div>
+
+    <label>Titre de l'alerte</label>
+    <input type="text" id="alertTitre" placeholder="Ex: Interruption d'eau potable ce soir"/>
+
+    <label>Message complet</label>
+    <textarea id="alertMsg" placeholder="Détails, instructions, contact d'urgence..."></textarea>
+
+    <label>Quartiers ciblés</label>
+    <div class="quartiers-wrap">
+      <input class="q-check" type="checkbox" id="qc0" value="tous"/><label class="q-label" for="qc0">🌍 Toute la commune</label>
+      <input class="q-check" type="checkbox" id="qc1" value="Centre-ville"/><label class="q-label" for="qc1">Centre-ville</label>
+      <input class="q-check" type="checkbox" id="qc2" value="Quartier Nord"/><label class="q-label" for="qc2">Quartier Nord</label>
+      <input class="q-check" type="checkbox" id="qc3" value="Quartier Sud"/><label class="q-label" for="qc3">Quartier Sud</label>
+      <input class="q-check" type="checkbox" id="qc4" value="Marché Central"/><label class="q-label" for="qc4">Marché Central</label>
+      <input class="q-check" type="checkbox" id="qc5" value="Zone Industrielle"/><label class="q-label" for="qc5">Zone Industrielle</label>
+      <input class="q-check" type="checkbox" id="qc6" value="Résidentiel Est"/><label class="q-label" for="qc6">Résidentiel Est</label>
+    </div>
+    <span class="select-all-btn" onclick="toggleAll()">Tout sélectionner / désélectionner</span>
+
+    <div class="planning-row" style="margin-top:12px">
+      <div>
+        <label>Date de publication</label>
+        <input type="date" id="alertDate"/>
+      </div>
+      <div>
+        <label>Heure (optionnel)</label>
+        <input type="time" id="alertHeure"/>
+      </div>
+    </div>
+
+    <label>Lien / Contact (optionnel)</label>
+    <input type="text" id="alertLien" placeholder="Numéro de téléphone ou site web"/>
+
+    <!-- PREVIEW -->
+    <div id="previewWrap" style="margin-top:14px">
+      <div style="font-size:.8rem;font-weight:600;color:var(--gray);margin-bottom:6px">Aperçu :</div>
+      <div class="preview-card urgence" id="previewCard">
+        <div class="preview-label">🚨 URGENCE</div>
+        <div id="previewTitle" style="font-size:.95rem;font-weight:700;margin-bottom:4px">Titre de l'alerte</div>
+        <div id="previewBody" style="font-size:.83rem">Message de l'alerte...</div>
+      </div>
+    </div>
+
+    <br/>
+    <button class="btn-submit" onclick="publier()">📤 Publier l'alerte</button>
+  </div>
+</div>
+
+<!-- PAGE NOTIFICATIONS -->
+<div id="notifs" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <h2 style="font-size:1rem;font-weight:700">📬 Centre de notifications</h2>
+    <span style="font-size:.8rem;color:var(--blue);cursor:pointer;font-weight:600" onclick="markAllRead()">Tout marquer lu</span>
+  </div>
+  <div class="notif-tray" id="notifTray"></div>
+</div>
+
+<!-- MODAL DÉTAIL ALERTE -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Détail de l'alerte</h3>
+      <button class="close-modal" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const URGENCES = {
+  urgence:{label:'URGENCE',ico:'🚨',color:'var(--red)'},
+  alerte:{label:'ALERTE',ico:'⚠️',color:'var(--orange)'},
+  info:{label:'INFORMATION',ico:'ℹ️',color:'var(--blue)'},
+  evenement:{label:'ÉVÉNEMENT',ico:'🎉',color:'var(--green)'}
+};
+
+let currentUrgence = 'urgence';
+let filtreFeed = 'tous';
+
+// ---- DONNÉES DEMO ----
+function getData(){
+  const raw = localStorage.getItem('alertes');
+  if(raw) return JSON.parse(raw);
+  const today = new Date().toISOString().slice(0,10);
+  const demo = [
+    {id:1,type:'urgence',titre:'Alerte inondation — Quartier Nord',msg:'Des pluies importantes sont prévues cette nuit. Les habitants du Quartier Nord sont priés d\'évacuer les zones basses. Rejoignez le centre d\'hébergement à l\'école primaire.',quartiers:['Quartier Nord','Quartier Sud'],date:today,heure:'18:30',lien:'Tel: 1234',lu:false},
+    {id:2,type:'alerte',titre:'Interruption d\'eau — Maintenance réseau',msg:'Une interruption d\'eau est prévue demain de 8h à 14h pour maintenance du réseau principal. Faites des réserves ce soir.',quartiers:['Centre-ville','Marché Central','Résidentiel Est'],date:today,heure:'10:00',lien:'',lu:false},
+    {id:3,type:'info',titre:'Ouverture des bureaux d\'état civil rénové',msg:'Nous avons le plaisir de vous annoncer que le bureau d\'état civil a été rénové et accueille désormais les citoyens du lundi au vendredi de 8h à 16h.',quartiers:['tous'],date:today,heure:'08:00',lien:'',lu:true},
+    {id:4,type:'evenement',titre:'Fête de la commune — 15 juin 2026',msg:'Venez célébrer la fête annuelle de la commune ! Au programme : concert, expositions artisanales, jeux pour enfants et discours des élus. Entrée libre.',quartiers:['tous'],date:today,heure:'09:00',lien:'',lu:true},
+    {id:5,type:'info',titre:'Collecte des ordures — Nouveau calendrier',msg:'À partir du 1er juillet, la collecte des ordures ménagères se fera le mardi et le vendredi matin. Sortez vos poubelles la veille au soir.',quartiers:['Centre-ville','Zone Industrielle'],date:today,heure:'07:30',lien:'',lu:true},
+  ];
+  localStorage.setItem('alertes',JSON.stringify(demo));
+  return demo;
+}
+function saveData(d){localStorage.setItem('alertes',JSON.stringify(d));}
+
+// ---- INIT ----
+window.addEventListener('load',()=>{
+  setTodayDate();
+  renderFeed();
+  renderNotifs();
+  setupPreviewListeners();
+});
+
+function setTodayDate(){
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('alertDate').value=today;
+}
+
+// ---- FEED CITOYEN ----
+function renderFeed(){
+  const data=getData();
+  const quartier=document.getElementById('monQuartier').value;
+
+  // stats
+  ['urgence','alerte','info','evenement'].forEach(t=>{
+    document.getElementById('st'+t.charAt(0).toUpperCase()+t.slice(1)).textContent=data.filter(x=>x.type===t).length;
+  });
+
+  // banner urgence
+  const urgentes=data.filter(x=>x.type==='urgence'&&(x.quartiers.includes('tous')||x.quartiers.includes(quartier)||quartier==='tous'));
+  const banner=document.getElementById('urgentBanner');
+  if(urgentes.length){
+    const u=urgentes[0];
+    banner.style.display='block';
+    banner.innerHTML=`<div class="urgent-banner"><div class="ico">🚨</div><div><h3>${u.titre}</h3><p>${u.msg.slice(0,100)}...</p></div></div>`;
+  } else {
+    banner.style.display='none';
+  }
+
+  let filtered=data.filter(x=>{
+    const typeOk=filtreFeed==='tous'||x.type===filtreFeed;
+    const quartierOk=quartier==='tous'||x.quartiers.includes('tous')||x.quartiers.includes(quartier);
+    return typeOk && quartierOk;
+  });
+
+  const c=document.getElementById('feedContainer');
+  if(!filtered.length){
+    c.innerHTML=`<div class="empty"><div class="ico">🔕</div><p>Aucune alerte pour votre quartier</p></div>`;
+    return;
+  }
+  c.innerHTML=filtered.map(a=>`
+    <div class="alerte-card" onclick="openModal(${a.id})">
+      <div class="alerte-stripe ${a.type}"></div>
+      <div class="alerte-inner">
+        <div class="alerte-head">
+          <span class="alerte-type type-${a.type}">${URGENCES[a.type]?.ico} ${URGENCES[a.type]?.label}</span>
+          <span style="font-size:.73rem;color:var(--gray)">${a.date} ${a.heure}</span>
+        </div>
+        <div class="alerte-title">${a.lu?'':' <span class="new-dot"></span>'}${a.titre}</div>
+        <div class="alerte-body">${a.msg.slice(0,120)}${a.msg.length>120?'...':''}</div>
+        <div class="alerte-quartiers">
+          ${a.quartiers.includes('tous')?'<span class="q-chip">🌍 Toute la commune</span>':a.quartiers.map(q=>`<span class="q-chip">📍 ${q}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filtrerFeed(btn,val){
+  filtreFeed=val;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderFeed();
+}
+
+// ---- ADMIN PUBLIER ----
+function selectUrgence(el,val){
+  document.querySelectorAll('.urg-opt').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  currentUrgence=val;
+  updatePreview();
+}
+
+function getSelectedQuartiers(){
+  const checks=document.querySelectorAll('.q-check:checked');
+  if(!checks.length) return [];
+  const vals=Array.from(checks).map(c=>c.value);
+  return vals.includes('tous')?['tous']:vals;
+}
+
+function toggleAll(){
+  const checks=document.querySelectorAll('.q-check');
+  const anyChecked=Array.from(checks).some(c=>c.checked);
+  checks.forEach(c=>c.checked=!anyChecked);
+}
+
+function setupPreviewListeners(){
+  ['alertTitre','alertMsg'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',updatePreview);
+  });
+}
+
+function updatePreview(){
+  const titre=document.getElementById('alertTitre').value||'Titre de l\'alerte';
+  const msg=document.getElementById('alertMsg').value||'Message de l\'alerte...';
+  const u=URGENCES[currentUrgence];
+  const card=document.getElementById('previewCard');
+  card.className=`preview-card ${currentUrgence}`;
+  document.getElementById('previewCard').querySelector('.preview-label').textContent=`${u.ico} ${u.label}`;
+  document.getElementById('previewTitle').textContent=titre;
+  document.getElementById('previewBody').textContent=msg.slice(0,150);
+}
+
+function publier(){
+  const titre=document.getElementById('alertTitre').value.trim();
+  const msg=document.getElementById('alertMsg').value.trim();
+  const quartiers=getSelectedQuartiers();
+  const date=document.getElementById('alertDate').value;
+  const heure=document.getElementById('alertHeure').value;
+  const lien=document.getElementById('alertLien').value.trim();
+
+  if(!titre){showToast('⚠️ Veuillez saisir un titre'); return;}
+  if(!msg){showToast('⚠️ Veuillez saisir un message'); return;}
+  if(!quartiers.length){showToast('⚠️ Sélectionnez au moins un quartier'); return;}
+
+  const data=getData();
+  data.unshift({id:Date.now(),type:currentUrgence,titre,msg,quartiers,date,heure,lien,lu:false});
+  saveData(data);
+
+  // reset
+  document.getElementById('alertTitre').value='';
+  document.getElementById('alertMsg').value='';
+  document.getElementById('alertLien').value='';
+  document.querySelectorAll('.q-check').forEach(c=>c.checked=false);
+  updatePreview();
+
+  addNotif(currentUrgence,titre,quartiers);
+  showToast('✅ Alerte publiée avec succès !');
+  showPage('citoyen');
+}
+
+// ---- NOTIFICATIONS ----
+function addNotif(type,titre,quartiers){
+  const notifs=JSON.parse(localStorage.getItem('notifs')||'[]');
+  notifs.unshift({id:Date.now(),type,titre,quartiers,time:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),lu:false});
+  localStorage.setItem('notifs',JSON.stringify(notifs));
+  renderNotifs();
+}
+
+function renderNotifs(){
+  const notifs=JSON.parse(localStorage.getItem('notifs')||'[]');
+  const c=document.getElementById('notifTray');
+  if(!notifs.length){
+    c.innerHTML=`<div class="empty"><div class="ico">📭</div><p>Aucune notification</p></div>`;
+    return;
+  }
+  c.innerHTML=notifs.map(n=>`
+    <div class="notif-item ${n.lu?'':'unread'}" onclick="readNotif(${n.id})">
+      <div class="notif-ico">${URGENCES[n.type]?.ico}</div>
+      <div class="notif-text">
+        <strong>${n.lu?'':' <span class="new-dot"></span>'}${n.titre}</strong>
+        <p>${n.quartiers.includes('tous')?'Toute la commune':n.quartiers.join(', ')}</p>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function readNotif(id){
+  const notifs=JSON.parse(localStorage.getItem('notifs')||'[]');
+  const n=notifs.find(x=>x.id===id);
+  if(n) n.lu=true;
+  localStorage.setItem('notifs',JSON.stringify(notifs));
+  renderNotifs();
+}
+
+function markAllRead(){
+  const notifs=JSON.parse(localStorage.getItem('notifs')||'[]');
+  notifs.forEach(n=>n.lu=true);
+  localStorage.setItem('notifs',JSON.stringify(notifs));
+  renderNotifs();
+  showToast('✓ Toutes les notifications marquées comme lues');
+}
+
+// ---- MODAL ----
+function openModal(id){
+  const a=getData().find(x=>x.id===id);
+  if(!a) return;
+  // mark as read
+  const data=getData();
+  const item=data.find(x=>x.id===id);
+  if(item&&!item.lu){item.lu=true;saveData(data);}
+
+  const u=URGENCES[a.type];
+  document.getElementById('modalTitle').textContent=`${u.ico} ${a.titre}`;
+  document.getElementById('modalBody').innerHTML=`
+    <div class="preview-card ${a.type}" style="margin-bottom:14px">
+      <div class="preview-label">${u.ico} ${u.label}</div>
+      <p style="font-size:.88rem;line-height:1.6">${a.msg}</p>
+    </div>
+    <div style="font-size:.83rem;display:flex;flex-direction:column;gap:8px">
+      <div><strong>📅 Date :</strong> ${a.date} ${a.heure?'à '+a.heure:''}</div>
+      ${a.lien?`<div><strong>📞 Contact :</strong> ${a.lien}</div>`:''}
+      <div><strong>📍 Quartiers :</strong></div>
+      <div class="alerte-quartiers">
+        ${a.quartiers.includes('tous')?'<span class="q-chip">🌍 Toute la commune</span>':a.quartiers.map(q=>`<span class="q-chip">📍 ${q}</span>`).join('')}
+      </div>
+    </div>
+    <button onclick="closeModal();deleteAlerte(${a.id})" style="margin-top:20px;width:100%;padding:10px;background:var(--red-light);color:var(--red);border:1.5px solid var(--red);border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;">🗑️ Supprimer cette alerte</button>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+function deleteAlerte(id){
+  const data=getData().filter(x=>x.id!==id);
+  saveData(data);
+  renderFeed();
+  showToast('🗑️ Alerte supprimée');
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+// ---- PAGES ----
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx=['citoyen','admin','notifs'].indexOf(id);
+  document.querySelectorAll('.ptab')[idx].classList.add('active');
+  if(id==='citoyen') renderFeed();
+  if(id==='notifs') renderNotifs();
+}
+
+// ---- TOAST ----
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal')) closeModal();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Admin — Mairie Numérique</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --blue:#1a56db;--blue-dark:#0e3a8c;--blue-light:#eff6ff;
+      --green:#16a34a;--green-light:#f0fdf4;
+      --red:#dc2626;--red-light:#fef2f2;
+      --orange:#ea580c;--orange-light:#fff7ed;
+      --yellow:#d97706;--yellow-light:#fefce8;
+      --purple:#7c3aed;--purple-light:#f5f3ff;
+      --sidebar-bg:#0f172a;--sidebar-text:#94a3b8;--sidebar-active:#fff;
+      --bg:#f1f5f9;--white:#fff;--gray:#6b7280;--border:#e2e8f0;
+    }
+    body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:#1e293b;display:flex;height:100vh;overflow:hidden;}
+
+    /* ===== SIDEBAR ===== */
+    .sidebar{width:240px;background:var(--sidebar-bg);color:var(--sidebar-text);display:flex;flex-direction:column;flex-shrink:0;transition:.3s;overflow-y:auto;z-index:100;}
+    .sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.06);}
+    .sidebar-logo h1{font-size:1rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;}
+    .sidebar-logo p{font-size:.72rem;margin-top:3px;opacity:.6;}
+    .sidebar-nav{padding:12px 0;flex:1;}
+    .nav-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:12px 20px 6px;opacity:.5;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:.86rem;font-weight:500;border-left:3px solid transparent;transition:.15s;}
+    .nav-item:hover{background:rgba(255,255,255,.05);color:#cbd5e1;}
+    .nav-item.active{background:rgba(26,86,219,.25);color:var(--sidebar-active);border-left-color:var(--blue);}
+    .nav-item .n-ico{font-size:1rem;flex-shrink:0;}
+    .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:10px;}
+    .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);font-size:.78rem;}
+    .sidebar-footer .agent-name{color:#fff;font-weight:600;}
+    .sidebar-footer .agent-role{opacity:.6;margin-top:2px;font-size:.72rem;}
+
+    /* ===== MAIN ===== */
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+    /* TOPBAR */
+    .topbar{background:var(--white);border-bottom:1.5px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+    .topbar-left{display:flex;align-items:center;gap:10px;flex:1;}
+    .hamburger{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray);display:none;}
+    .breadcrumb{font-size:.82rem;color:var(--gray);}
+    .breadcrumb span{color:var(--blue);font-weight:600;}
+    .topbar-right{display:flex;align-items:center;gap:14px;}
+    .tb-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:7px 14px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px;}
+    .tb-btn:hover{background:var(--bg);}
+    .tb-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+    .tb-btn.primary:hover{background:var(--blue-dark);}
+    .notif-wrap{position:relative;}
+    .notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff;}
+    .avatar{width:34px;height:34px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;font-weight:700;cursor:pointer;}
+
+    /* CONTENT */
+    .content{flex:1;overflow-y:auto;padding:24px;}
+    .section{display:none;}
+    .section.active{display:block;}
+
+    /* SECTION HEADER */
+    .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:gap;}
+    .section-head h2{font-size:1.2rem;font-weight:800;}
+    .section-head p{font-size:.82rem;color:var(--gray);margin-top:3px;}
+
+    /* KPI CARDS */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:24px;}
+    .kpi-card{background:var(--white);border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;}
+    .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue);}
+    .kpi-card.green::before{background:var(--green);}
+    .kpi-card.red::before{background:var(--red);}
+    .kpi-card.orange::before{background:var(--orange);}
+    .kpi-card.yellow::before{background:var(--yellow);}
+    .kpi-card.purple::before{background:var(--purple);}
+    .kpi-ico{font-size:1.5rem;}
+    .kpi-value{font-size:1.8rem;font-weight:800;color:#1e293b;line-height:1;}
+    .kpi-label{font-size:.76rem;color:var(--gray);font-weight:600;}
+    .kpi-trend{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:20px;align-self:flex-start;}
+    .trend-up{background:var(--green-light);color:var(--green);}
+    .trend-down{background:var(--red-light);color:var(--red);}
+
+    /* CHARTS */
+    .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px;}
+    .chart-card{background:var(--white);border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.06);}
+    .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+    .chart-title{font-size:.92rem;font-weight:700;}
+    .chart-sub{font-size:.75rem;color:var(--gray);}
+    .chart-container{position:relative;}
+
+    /* TABLES */
+    .table-card{background:var(--white);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden;margin-bottom:20px;}
+    .table-header{padding:16px 20px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+    .table-title{font-size:.92rem;font-weight:700;}
+    .table-actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .search-input{padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;width:200px;}
+    .search-input:focus{border-color:var(--blue);}
+    .filter-select{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;outline:none;}
+    table{width:100%;border-collapse:collapse;}
+    thead tr{background:#f8fafc;}
+    th{padding:11px 16px;text-align:left;font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--gray);border-bottom:1.5px solid var(--border);}
+    td{padding:12px 16px;font-size:.84rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:#fafbfc;}
+    .td-name{font-weight:600;color:#1e293b;}
+    .badge{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+    .badge-nouveau{background:#dbeafe;color:#1d4ed8;}
+    .badge-en_cours{background:var(--yellow-light);color:var(--yellow);}
+    .badge-résolu{background:var(--green-light);color:var(--green);}
+    .badge-payé{background:var(--green-light);color:var(--green);}
+    .badge-en_attente{background:var(--yellow-light);color:var(--yellow);}
+    .badge-rejeté{background:var(--red-light);color:var(--red);}
+    .badge-urgence{background:var(--red-light);color:var(--red);}
+    .badge-info{background:var(--blue-light);color:var(--blue);}
+    .badge-evenement{background:var(--green-light);color:var(--green);}
+    .action-btn{background:none;border:1.5px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.76rem;cursor:pointer;transition:.15s;font-family:inherit;}
+    .action-btn:hover{background:var(--bg);}
+    .action-btn.blue{border-color:var(--blue);color:var(--blue);}
+    .action-btn.red{border-color:var(--red);color:var(--red);}
+    .action-btn.green{border-color:var(--green);color:var(--green);}
+    .pagination{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1.5px solid var(--border);}
+    .pagination span{font-size:.8rem;color:var(--gray);}
+    .page-btns{display:flex;gap:6px;}
+    .page-btn{width:30px;height:30px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .page-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+    /* REVENUS */
+    .revenus-kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px;}
+    .revenu-card{background:var(--white);border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid var(--blue);}
+    .revenu-card.green{border-left-color:var(--green);}
+    .revenu-card.orange{border-left-color:var(--orange);}
+    .revenu-card.yellow{border-left-color:var(--yellow);}
+    .revenu-label{font-size:.76rem;color:var(--gray);font-weight:600;margin-bottom:6px;}
+    .revenu-value{font-size:1.4rem;font-weight:800;color:#1e293b;}
+    .revenu-sub{font-size:.72rem;color:var(--gray);margin-top:4px;}
+
+    /* AGENTS */
+    .agents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+    .agent-card{background:var(--white);border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center;transition:.2s;}
+    .agent-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.1);}
+    .agent-avatar{width:60px;height:60px;border-radius:50%;background:var(--blue);color:#fff;font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+    .agent-name{font-size:.95rem;font-weight:700;}
+    .agent-role{font-size:.78rem;color:var(--gray);margin-top:3px;}
+    .agent-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+    .agent-stat{background:var(--bg);border-radius:8px;padding:8px;}
+    .agent-stat .n{font-size:1.1rem;font-weight:800;color:var(--blue);}
+    .agent-stat .l{font-size:.68rem;color:var(--gray);}
+    .agent-status{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:5px;}
+    .agent-status.off{background:var(--gray);}
+
+    /* ALERTES ADMIN */
+    .alerte-admin-item{display:flex;align-items:flex-start;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);}
+    .alerte-admin-item:last-child{border-bottom:none;}
+    .aa-stripe{width:4px;border-radius:4px;flex-shrink:0;min-height:50px;}
+    .aa-stripe.urgence{background:var(--red);}
+    .aa-stripe.alerte{background:var(--orange);}
+    .aa-stripe.info{background:var(--blue);}
+    .aa-stripe.evenement{background:var(--green);}
+    .aa-body{flex:1;min-width:0;}
+    .aa-title{font-size:.9rem;font-weight:700;margin-bottom:4px;}
+    .aa-msg{font-size:.8rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
+    .aa-meta{display:flex;gap:10px;font-size:.73rem;color:var(--gray);}
+    .aa-actions{display:flex;gap:6px;align-items:center;}
+
+    /* FORM NOUVELLE ALERTE */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .form-group{display:flex;flex-direction:column;gap:5px;}
+    .form-group.full{grid-column:1/-1;}
+    .form-label{font-size:.8rem;font-weight:600;color:#374151;}
+    .form-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;outline:none;transition:.2s;}
+    .form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+    .form-textarea{resize:vertical;min-height:80px;}
+    .quartiers-check{display:flex;flex-wrap:wrap;gap:8px;}
+    .qc-item input{display:none;}
+    .qc-item label{padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.15s;}
+    .qc-item input:checked+label{background:var(--blue);color:#fff;border-color:var(--blue);}
+    .urgence-radio{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .ur-item input{display:none;}
+    .ur-item label{display:block;padding:10px 6px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:.2s;font-size:.78rem;font-weight:600;}
+    .ur-item input:checked+label{border-color:var(--blue);background:var(--blue-light);color:var(--blue);}
+    .btn-form{padding:10px 20px;border-radius:8px;font-size:.86rem;font-weight:700;cursor:pointer;border:none;transition:.2s;}
+    .btn-primary{background:var(--blue);color:#fff;}
+    .btn-primary:hover{background:var(--blue-dark);}
+    .btn-secondary{background:var(--bg);color:#374151;border:1.5px solid var(--border);}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.show{display:flex;}
+    .modal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+    .modal-header{padding:18px 22px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+    .modal-header h3{font-size:1rem;font-weight:700;}
+    .close-modal{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray);}
+    .modal-body{padding:22px;}
+    .detail-row{display:flex;gap:12px;margin-bottom:10px;font-size:.85rem;}
+    .detail-row strong{min-width:110px;color:#374151;flex-shrink:0;}
+    .modal-status-update{margin-top:16px;padding-top:16px;border-top:1.5px solid var(--border);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 22px;border-radius:10px;font-size:.86rem;font-weight:600;z-index:700;transform:translateY(100px);opacity:0;transition:.3s;}
+    .toast.show{transform:translateY(0);opacity:1;}
+
+    /* RESPONSIVE */
+    @media(max-width:900px){
+      .charts-grid{grid-template-columns:1fr;}
+      .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    }
+    @media(max-width:700px){
+      .sidebar{position:fixed;left:-240px;top:0;bottom:0;z-index:200;}
+      .sidebar.open{left:0;}
+      .hamburger{display:block;}
+      .main{width:100%;}
+      .form-grid{grid-template-columns:1fr;}
+      .urgence-radio{grid-template-columns:repeat(2,1fr);}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <h1>🏛️ Mairie Admin</h1>
+    <p>Tableau de bord municipal</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Principal</div>
+    <div class="nav-item active" onclick="showSection('overview',this)"><span class="n-ico">📊</span> Vue d'ensemble</div>
+    <div class="nav-item" onclick="showSection('signalements',this)"><span class="n-ico">🚨</span> Signalements <span class="nav-badge" id="navBadgeSig">0</span></div>
+    <div class="nav-item" onclick="showSection('demandes',this)"><span class="n-ico">📋</span> Demandes admin <span class="nav-badge" id="navBadgeDem">0</span></div>
+    <div class="nav-label">Finances</div>
+    <div class="nav-item" onclick="showSection('revenus',this)"><span class="n-ico">💰</span> Revenus fiscaux</div>
+    <div class="nav-label">Communication</div>
+    <div class="nav-item" onclick="showSection('alertes_admin',this)"><span class="n-ico">📢</span> Alertes & Actualités</div>
+    <div class="nav-label">Équipe</div>
+    <div class="nav-item" onclick="showSection('agents',this)"><span class="n-ico">👥</span> Agents</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="agent-name">🟢 Administrateur</div>
+    <div class="agent-role">Super Admin · Mairie centrale</div>
+    <div style="margin-top:10px">
+      <a href="index.html" style="color:var(--sidebar-text);font-size:.75rem;text-decoration:none;">← Retour accueil</a>
+      &nbsp;·&nbsp;
+      <a href="citoyen.html" style="color:var(--sidebar-text);font-size:.75rem;text-decoration:none;">App citoyenne</a>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== MAIN ===== -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div class="breadcrumb">Mairie &rsaquo; <span id="breadcrumbText">Vue d'ensemble</span></div>
+    </div>
+    <div class="topbar-right">
+      <div style="font-size:.8rem;color:var(--gray)">📅 <span id="todayDate"></span></div>
+      <button class="tb-btn" onclick="exportCSV()">📥 Exporter</button>
+      <div class="notif-wrap">
+        <button class="tb-btn" onclick="showSection('signalements',document.querySelector('.nav-item:nth-child(2)'))">🔔<span id="notifCount" style="margin-left:4px;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.7rem;font-weight:700"></span></button>
+        <div class="notif-dot" id="notifDot" style="display:none"></div>
+      </div>
+      <div class="avatar">A</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- =========== OVERVIEW =========== -->
+    <div id="overview" class="section active">
+      <div class="section-head">
+        <div><h2>Vue d'ensemble</h2><p>Tableau de bord en temps réel — mise à jour instantanée</p></div>
+        <button class="tb-btn primary" onclick="showSection('signalements',document.querySelectorAll('.nav-item')[1])">+ Nouveau signalement</button>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">📈 Revenus fiscaux mensuels</div><div class="chart-sub">6 derniers mois — en FCFA</div></div>
+          </div>
+          <div class="chart-container"><canvas id="chartRevenus" height="220"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">🚨 Signalements par type</div><div class="chart-sub">Répartition totale</div></div>
+          </div>
+          <div class="chart-container"><canvas id="chartTypes" height="220"></canvas></div>
+        </div>
+      </div>
+
+      <div class="charts-grid" style="grid-template-columns:1fr 1fr">
+        <div class="chart-card">
+          <div class="chart-header"><div class="chart-title">📊 Activité — 7 derniers jours</div></div>
+          <div class="chart-container"><canvas id="chartActivite" height="180"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div class="chart-title">📍 Signalements par quartier</div></div>
+          <div class="chart-container"><canvas id="chartQuartiers" height="180"></canvas></div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">⚡ Derniers signalements</div><button class="tb-btn" onclick="showSection('signalements',document.querySelectorAll('.nav-item')[1])">Voir tout →</button></div>
+        <table><thead><tr><th>Type</th><th>Citoyen</th><th>Quartier</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody id="recentSigTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- =========== SIGNALEMENTS =========== -->
+    <div id="signalements" class="section">
+      <div class="section-head">
+        <div><h2>🚨 Signalements Citoyens</h2><p>Gérer et traiter les signalements en cours</p></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="sigKpiRow"></div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Tous les signalements</div>
+          <div class="table-actions">
+            <input class="search-input" type="text" placeholder="🔍 Rechercher..." oninput="filterSig(this.value)"/>
+            <select class="filter-select" onchange="filterSigStatus(this.value)">
+              <option value="tous">Tous les statuts</option>
+              <option value="nouveau">🔵 Nouveau</option>
+              <option value="en_cours">🟡 En cours</option>
+              <option value="résolu">🟢 Résolu</option>
+            </select>
+            <select class="filter-select" onchange="filterSigType(this.value)">
+              <option value="tous">Tous les types</option>
+              <option value="route">🛣️ Route</option>
+              <option value="eclairage">💡 Éclairage</option>
+              <option value="ordures">🗑️ Ordures</option>
+              <option value="eau">💧 Eau</option>
+              <option value="securite">🔐 Sécurité</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Type</th><th>Description</th><th>Quartier</th><th>Date</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
+          <tbody id="sigTableBody"></tbody>
+        </table>
+        <div class="pagination"><span id="sigPagInfo">—</span><div class="page-btns" id="sigPagBtns"></div></div>
+      </div>
+    </div>
+
+    <!-- =========== DEMANDES =========== -->
+    <div id="demandes" class="section">
+      <div class="section-head">
+        <div><h2>📋 Demandes Administratives</h2><p>Traiter les demandes de documents des citoyens</p></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="demKpiRow"></div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Toutes les demandes</div>
+          <div class="table-actions">
+            <input class="search-input" type="text" placeholder="🔍 Rechercher..." oninput="filterDem(this.value)"/>
+            <select class="filter-select" onchange="filterDemStatus(this.value)">
+              <option value="tous">Tous les statuts</option>
+              <option value="en_attente">⏳ En attente</option>
+              <option value="en_cours">🟡 En cours</option>
+              <option value="prêt">✅ Prêt</option>
+              <option value="livré">📦 Livré</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Citoyen</th><th>Document</th><th>Date demande</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
+          <tbody id="demTableBody"></tbody>
+        </table>
+        <div class="pagination"><span id="demPagInfo">—</span><div class="page-btns"></div></div>
+      </div>
+    </div>
+
+    <!-- =========== REVENUS =========== -->
+    <div id="revenus" class="section">
+      <div class="section-head">
+        <div><h2>💰 Revenus Fiscaux</h2><p>Suivi des paiements et taxes collectées</p></div>
+        <button class="tb-btn primary" onclick="exportCSV()">📥 Exporter CSV</button>
+      </div>
+
+      <div class="revenus-kpi" id="revKpiRow"></div>
+
+      <div class="chart-card" style="margin-bottom:20px">
+        <div class="chart-header"><div class="chart-title">📈 Évolution des revenus — 6 mois</div></div>
+        <div class="chart-container"><canvas id="chartRevenusFull" height="160"></canvas></div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Historique des paiements</div>
+          <div class="table-actions">
+            <input class="search-input" type="text" placeholder="🔍 Citoyen ou référence..." oninput="filterPay(this.value)"/>
+            <select class="filter-select" onchange="filterPayType(this.value)">
+              <option value="tous">Tous les types</option>
+              <option value="Taxe foncière">Taxe foncière</option>
+              <option value="Patente">Patente</option>
+              <option value="Taxe d'habitation">Taxe habitation</option>
+              <option value="Droits de place">Droits de place</option>
+            </select>
+            <select class="filter-select" onchange="filterPayStatus(this.value)">
+              <option value="tous">Tous statuts</option>
+              <option value="payé">✅ Payé</option>
+              <option value="en_attente">⏳ En attente</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Réf.</th><th>Citoyen</th><th>Type de taxe</th><th>Montant</th><th>Date</th><th>Mode paiement</th><th>Statut</th><th>Reçu</th></tr></thead>
+          <tbody id="payTableBody"></tbody>
+        </table>
+        <div class="pagination"><span id="payPagInfo">—</span></div>
+      </div>
+    </div>
+
+    <!-- =========== ALERTES ADMIN =========== -->
+    <div id="alertes_admin" class="section">
+      <div class="section-head">
+        <div><h2>📢 Alertes & Actualités</h2><p>Gérer et publier les communications officielles</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start">
+        <div>
+          <div class="table-card">
+            <div class="table-header"><div class="table-title">Alertes publiées</div></div>
+            <div id="alerteAdminList"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title" style="margin-bottom:16px">+ Nouvelle alerte</div>
+          <div class="form-group" style="margin-bottom:12px">
+            <div class="form-label">Niveau d'urgence</div>
+            <div class="urgence-radio">
+              <div class="ur-item"><input type="radio" name="urg" id="ur1" value="urgence" checked/><label for="ur1">🚨 Urgence</label></div>
+              <div class="ur-item"><input type="radio" name="urg" id="ur2" value="alerte"/><label for="ur2">⚠️ Alerte</label></div>
+              <div class="ur-item"><input type="radio" name="urg" id="ur3" value="info"/><label for="ur3">ℹ️ Info</label></div>
+              <div class="ur-item"><input type="radio" name="urg" id="ur4" value="evenement"/><label for="ur4">🎉 Événement</label></div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <div class="form-label">Titre</div>
+            <input class="form-input" type="text" id="newAlerteTitre" placeholder="Titre de l'alerte"/>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <div class="form-label">Message</div>
+            <textarea class="form-input form-textarea" id="newAlerteMsg" style="min-height:70px" placeholder="Message complet..."></textarea>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <div class="form-label">Quartiers ciblés</div>
+            <div class="quartiers-check">
+              <div class="qc-item"><input type="checkbox" id="qa0" value="tous"/><label for="qa0">🌍 Tous</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa1" value="Centre-ville"/><label for="qa1">Centre-ville</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa2" value="Quartier Nord"/><label for="qa2">Nord</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa3" value="Quartier Sud"/><label for="qa3">Sud</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa4" value="Marché Central"/><label for="qa4">Marché</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa5" value="Zone Industrielle"/><label for="qa5">Zone Ind.</label></div>
+            </div>
+          </div>
+          <button class="btn-form btn-primary" style="width:100%" onclick="publierAlerte()">📤 Publier l'alerte</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========== AGENTS =========== -->
+    <div id="agents" class="section">
+      <div class="section-head">
+        <div><h2>👥 Gestion des Agents</h2><p>Équipe municipale et statistiques de traitement</p></div>
+      </div>
+      <div class="agents-grid" id="agentsGrid"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modalTitle">Détails</h3><button class="close-modal" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================= DATA =============================
+const TYPES_SIG={route:{label:'Route abîmée',ico:'🛣️'},eclairage:{label:'Éclairage cassé',ico:'💡'},ordures:{label:'Ordures',ico:'🗑️'},eau:{label:'Fuite d\'eau',ico:'💧'},securite:{label:'Sécurité',ico:'🔐'},autre:{label:'Autre',ico:'⚠️'}};
+const AGENTS_LIST=['Fatima Traoré','Jean-Pierre Mbeki','Amina Hassan','David Koulibaly','Reine Ouédraogo','Ibrahim Sarr'];
+
+function initData(){
+  if(!localStorage.getItem('signalements')){
+    const sigs=[
+      {id:1,type:'route',citoyen:'Mamadou Koné',tel:'655-123',quartier:'Centre-ville',desc:'Nid de poule dangereux devant l\'école primaire N°3',lat:12.365,lng:15.044,statut:'en_cours',date:'2026-06-06',agent:'Fatima Traoré',photo:null},
+      {id:2,type:'eclairage',citoyen:'Aïcha Diabaté',tel:'677-234',quartier:'Marché Central',desc:'Lampadaire en panne rue du commerce depuis 3 semaines',lat:12.362,lng:15.041,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
+      {id:3,type:'ordures',citoyen:'Ibrahim Coulibaly',tel:'699-345',quartier:'Quartier Nord',desc:'Dépôt sauvage à l\'angle de la rue principale',lat:12.368,lng:15.048,statut:'résolu',date:'2026-06-05',agent:'Jean-Pierre Mbeki',photo:null},
+      {id:4,type:'eau',citoyen:'Marie Ngozi',tel:'611-456',quartier:'Quartier Sud',desc:'Fuite d\'eau importante sur la conduite rue Liberté',lat:12.360,lng:15.046,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
+      {id:5,type:'route',citoyen:'Ahmed Touré',tel:'622-567',quartier:'Zone Industrielle',desc:'Chaussée effondrée à l\'entrée de la zone industrielle',lat:12.370,lng:15.042,statut:'en_cours',date:'2026-06-04',agent:'Amina Hassan',photo:null},
+      {id:6,type:'eclairage',citoyen:'Fatou Diallo',tel:'633-678',quartier:'Résidentiel Est',desc:'Trois lampadaires en panne avenue des Palmiers',lat:12.363,lng:15.050,statut:'résolu',date:'2026-06-03',agent:'Reine Ouédraogo',photo:null},
+      {id:7,type:'securite',citoyen:'Paul Mwamba',tel:'644-789',quartier:'Centre-ville',desc:'Grille de protection cassée sur le canal, risque pour les enfants',lat:12.366,lng:15.043,statut:'nouveau',date:'2026-06-08',agent:null,photo:null},
+      {id:8,type:'ordures',citoyen:'Salimata Ba',tel:'655-890',quartier:'Quartier Nord',desc:'Poubelles non collectées depuis 10 jours',lat:12.369,lng:15.047,statut:'en_cours',date:'2026-06-06',agent:'David Koulibaly',photo:null},
+    ];
+    localStorage.setItem('signalements',JSON.stringify(sigs));
+  }
+  if(!localStorage.getItem('demandes_admin')){
+    const dem=[
+      {id:1,citoyen:'Moussa Camara',tel:'611-001',type_doc:'Acte de naissance',date:'2026-06-07',statut:'en_cours',agent:'Fatima Traoré',commentaire:'Vérification en cours'},
+      {id:2,citoyen:'Aminata Kouyaté',tel:'622-002',type_doc:'Certificat de résidence',date:'2026-06-07',statut:'prêt',agent:'Jean-Pierre Mbeki',commentaire:'Disponible au guichet'},
+      {id:3,citoyen:'Oumar Sylla',tel:'633-003',type_doc:'Légalisation de document',date:'2026-06-06',statut:'en_attente',agent:null,commentaire:''},
+      {id:4,citoyen:'Kadiatou Bah',tel:'644-004',type_doc:'Acte de mariage',date:'2026-06-06',statut:'livré',agent:'Amina Hassan',commentaire:''},
+      {id:5,citoyen:'Ibrahima Konaté',tel:'655-005',type_doc:'Acte de décès',date:'2026-06-05',statut:'prêt',agent:'Fatima Traoré',commentaire:''},
+      {id:6,citoyen:'Mariam Diallo',tel:'666-006',type_doc:'Inscription liste électorale',date:'2026-06-04',statut:'livré',agent:'David Koulibaly',commentaire:''},
+      {id:7,citoyen:'Sékou Traoré',tel:'677-007',type_doc:'Acte de naissance',date:'2026-06-08',statut:'en_attente',agent:null,commentaire:''},
+    ];
+    localStorage.setItem('demandes_admin',JSON.stringify(dem));
+  }
+  if(!localStorage.getItem('paiements')){
+    const citoyens=['Mamadou Koné','Aïcha Diabaté','Ibrahim Coulibaly','Marie Ngozi','Ahmed Touré','Fatou Diallo','Paul Mwamba','Salimata Ba','Omar Cissé','Hawa Balde'];
+    const types=['Taxe foncière','Patente','Taxe d\'habitation','Droits de place'];
+    const modes=['Airtel Money','Moov Money','Espèces','Virement'];
+    const montants={'Taxe foncière':[25000,45000,75000,120000,150000],'Patente':[50000,75000,150000,250000,500000],'Taxe d\'habitation':[10000,15000,25000,35000],'Droits de place':[2000,3000,5000,7000,10000]};
+    const pays=[];
+    for(let i=1;i<=22;i++){
+      const type=types[Math.floor(Math.random()*types.length)];
+      const monts=montants[type];
+      pays.push({id:i,citoyen:citoyens[Math.floor(Math.random()*citoyens.length)],type_taxe:type,montant:monts[Math.floor(Math.random()*monts.length)],date:`2026-0${Math.floor(Math.random()*6)+1}-${String(Math.floor(Math.random()*28)+1).padStart(2,'0')}`,mode:modes[Math.floor(Math.random()*modes.length)],statut:Math.random()>.2?'payé':'en_attente',recu:`REC-2026-${String(i).padStart(3,'0')}`});
+    }
+    localStorage.setItem('paiements',JSON.stringify(pays));
+  }
+  if(!localStorage.getItem('alertes')){
+    const today=new Date().toISOString().slice(0,10);
+    const alertes=[
+      {id:1,type:'urgence',titre:'Alerte inondation — Quartier Nord',msg:'Des pluies importantes prévues cette nuit. Évacuez les zones basses.',quartiers:['Quartier Nord','Quartier Sud'],date:today,heure:'18:30',lien:'1234',auteur:'Admin'},
+      {id:2,type:'alerte',titre:'Interruption d\'eau — Maintenance réseau',msg:'Interruption prévue demain de 8h à 14h. Faites des réserves.',quartiers:['Centre-ville','Marché Central'],date:today,heure:'10:00',lien:'',auteur:'Admin'},
+      {id:3,type:'info',titre:'Bureau d\'état civil rénové',msg:'Ouvert du lundi au vendredi de 8h à 16h.',quartiers:['tous'],date:today,heure:'08:00',lien:'',auteur:'Admin'},
+      {id:4,type:'evenement',titre:'Fête de la commune — 15 juin',msg:'Concert, expositions, jeux pour enfants. Entrée libre.',quartiers:['tous'],date:today,heure:'09:00',lien:'',auteur:'Admin'},
+    ];
+    localStorage.setItem('alertes',JSON.stringify(alertes));
+  }
+  if(!localStorage.getItem('agents_data')){
+    const ag=[
+      {id:1,nom:'Fatima Traoré',role:'Chef de bureau',actif:true,sigs_traites:28,dems_traitees:45,quartier:'Centre-ville'},
+      {id:2,nom:'Jean-Pierre Mbeki',role:'Agent signalements',actif:true,sigs_traites:19,dems_traitees:12,quartier:'Marché Central'},
+      {id:3,nom:'Amina Hassan',role:'Agent état civil',actif:true,sigs_traites:8,dems_traitees:67,quartier:'Quartier Nord'},
+      {id:4,nom:'David Koulibaly',role:'Agent voirie',actif:true,sigs_traites:34,dems_traitees:5,quartier:'Zone Industrielle'},
+      {id:5,nom:'Reine Ouédraogo',role:'Agent technique',actif:false,sigs_traites:15,dems_traitees:22,quartier:'Résidentiel Est'},
+      {id:6,nom:'Ibrahim Sarr',role:'Responsable fiscal',actif:true,sigs_traites:3,dems_traitees:8,quartier:'Quartier Sud'},
+    ];
+    localStorage.setItem('agents_data',JSON.stringify(ag));
+  }
+}
+
+function getSigs(){return JSON.parse(localStorage.getItem('signalements')||'[]');}
+function saveSigs(d){localStorage.setItem('signalements',JSON.stringify(d));}
+function getDems(){return JSON.parse(localStorage.getItem('demandes_admin')||'[]');}
+function saveDems(d){localStorage.setItem('demandes_admin',JSON.stringify(d));}
+function getPays(){return JSON.parse(localStorage.getItem('paiements')||'[]');}
+function getAlertes(){return JSON.parse(localStorage.getItem('alertes')||'[]');}
+function saveAlertes(d){localStorage.setItem('alertes',JSON.stringify(d));}
+function getAgents(){return JSON.parse(localStorage.getItem('agents_data')||'[]');}
+
+// ============================= INIT =============================
+let charts={};
+let sigFilter={search:'',statut:'tous',type:'tous'};
+let demFilter={search:'',statut:'tous'};
+let payFilter={search:'',type:'tous',statut:'tous'};
+
+window.addEventListener('load',()=>{
+  initData();
+  document.getElementById('todayDate').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  renderOverview();
+  updateNavBadges();
+});
+
+function updateNavBadges(){
+  const sigs=getSigs(), dems=getDems();
+  const nbSig=sigs.filter(s=>s.statut==='nouveau').length;
+  const nbDem=dems.filter(d=>d.statut==='en_attente').length;
+  document.getElementById('navBadgeSig').textContent=nbSig||'';
+  document.getElementById('navBadgeSig').style.display=nbSig?'inline':'none';
+  document.getElementById('navBadgeDem').textContent=nbDem||'';
+  document.getElementById('navBadgeDem').style.display=nbDem?'inline':'none';
+  document.getElementById('notifCount').textContent=nbSig+nbDem||'';
+  document.getElementById('notifDot').style.display=(nbSig+nbDem)>0?'block':'none';
+}
+
+// ============================= OVERVIEW =============================
+function renderOverview(){
+  const sigs=getSigs(), dems=getDems(), pays=getPays();
+  const total=sigs.length, nouveau=sigs.filter(s=>s.statut==='nouveau').length;
+  const en_cours=sigs.filter(s=>s.statut==='en_cours').length, resolu=sigs.filter(s=>s.statut==='résolu').length;
+  const totalPaye=pays.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0);
+  const demsEnAttente=dems.filter(d=>d.statut==='en_attente').length;
+  const alertesActives=getAlertes().filter(a=>a.type==='urgence'||a.type==='alerte').length;
+
+  document.getElementById('kpiGrid').innerHTML=`
+    <div class="kpi-card"><span class="kpi-ico">🚨</span><div class="kpi-value">${total}</div><div class="kpi-label">Total signalements</div><span class="kpi-trend trend-up">↑ actif</span></div>
+    <div class="kpi-card red"><span class="kpi-ico">🔴</span><div class="kpi-value">${nouveau}</div><div class="kpi-label">Nouveaux (non traités)</div><span class="kpi-trend trend-down">⚠ priorité</span></div>
+    <div class="kpi-card yellow"><span class="kpi-ico">🟡</span><div class="kpi-value">${en_cours}</div><div class="kpi-label">En cours de traitement</div></div>
+    <div class="kpi-card green"><span class="kpi-ico">✅</span><div class="kpi-value">${resolu}</div><div class="kpi-label">Résolus avec succès</div><span class="kpi-trend trend-up">↑ ${Math.round(resolu/total*100)||0}%</span></div>
+    <div class="kpi-card orange"><span class="kpi-ico">💰</span><div class="kpi-value">${(totalPaye/1000).toFixed(0)}K</div><div class="kpi-label">Revenus collectés (FCFA)</div><span class="kpi-trend trend-up">↑ ce mois</span></div>
+    <div class="kpi-card purple"><span class="kpi-ico">📋</span><div class="kpi-value">${demsEnAttente}</div><div class="kpi-label">Demandes en attente</div></div>`;
+
+  // Recent signalements
+  const recent=getSigs().slice(0,6);
+  document.getElementById('recentSigTable').innerHTML=recent.map(s=>`
+    <tr>
+      <td>${TYPES_SIG[s.type]?.ico||'⚠️'} <span style="font-size:.8rem;font-weight:600">${TYPES_SIG[s.type]?.label||s.type}</span></td>
+      <td class="td-name">${s.citoyen||'—'}</td>
+      <td>📍 ${s.quartier}</td>
+      <td>${s.date}</td>
+      <td><span class="badge badge-${s.statut}">${s.statut.replace('_',' ')}</span></td>
+      <td><button class="action-btn blue" onclick="openSigModal(${s.id})">Voir</button> <button class="action-btn" onclick="quickUpdateSig(${s.id})">Mettre à jour</button></td>
+    </tr>`).join('');
+
+  renderCharts();
+}
+
+function renderCharts(){
+  const sigs=getSigs(), pays=getPays();
+  const mois=['Janv','Févr','Mars','Avr','Mai','Juin'];
+  const revenusData=[4850000,5200000,4100000,6300000,5800000,pays.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0)];
+
+  if(charts.revenus) charts.revenus.destroy();
+  charts.revenus=new Chart(document.getElementById('chartRevenus'),{type:'bar',data:{labels:mois,datasets:[{label:'Revenus (FCFA)',data:revenusData,backgroundColor:'rgba(26,86,219,.7)',borderColor:'#1a56db',borderWidth:2,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v>=1000000?`${(v/1000000).toFixed(1)}M`:`${(v/1000).toFixed(0)}K`}}}}});
+
+  const typeCounts={route:0,eclairage:0,ordures:0,eau:0,securite:0,autre:0};
+  sigs.forEach(s=>{if(typeCounts[s.type]!==undefined)typeCounts[s.type]++;});
+  if(charts.types) charts.types.destroy();
+  charts.types=new Chart(document.getElementById('chartTypes'),{type:'doughnut',data:{labels:['Route','Éclairage','Ordures','Eau','Sécurité','Autre'],datasets:[{data:Object.values(typeCounts),backgroundColor:['#1a56db','#d97706','#16a34a','#0891b2','#7c3aed','#6b7280'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:8}}}}});
+
+  const days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const sigData=[3,5,2,7,4,6,sigs.filter(s=>s.date===new Date().toISOString().slice(0,10)).length||3];
+  const demData=[2,4,3,5,3,4,2];
+  if(charts.activite) charts.activite.destroy();
+  charts.activite=new Chart(document.getElementById('chartActivite'),{type:'line',data:{labels:days,datasets:[{label:'Signalements',data:sigData,borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.08)',fill:true,tension:.4},{label:'Demandes',data:demData,borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.08)',fill:true,tension:.4}]},options:{responsive:true,plugins:{legend:{labels:{font:{size:11}}}},scales:{y:{beginAtZero:true}}}});
+
+  const qartiers=['Centre-ville','Marché','Quartier Nord','Quartier Sud','Zone Ind.','Résidentiel'];
+  const qData=qartiers.map((q,i)=>sigs.filter(s=>s.quartier&&s.quartier.includes(q.split(' ')[0])).length||Math.floor(Math.random()*5+1));
+  if(charts.quartiers) charts.quartiers.destroy();
+  charts.quartiers=new Chart(document.getElementById('chartQuartiers'),{type:'bar',data:{labels:qartiers,datasets:[{data:qData,backgroundColor:['#1a56db','#16a34a','#d97706','#ea580c','#7c3aed','#0891b2'],borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},indexAxis:'y',scales:{x:{beginAtZero:true}}}});
+}
+
+// ============================= SIGNALEMENTS =============================
+function renderSigTable(){
+  const all=getSigs();
+  let data=all.filter(s=>{
+    const matchSearch=!sigFilter.search||s.citoyen?.toLowerCase().includes(sigFilter.search.toLowerCase())||s.desc.toLowerCase().includes(sigFilter.search.toLowerCase())||s.quartier.toLowerCase().includes(sigFilter.search.toLowerCase());
+    const matchStatus=sigFilter.statut==='tous'||s.statut===sigFilter.statut;
+    const matchType=sigFilter.type==='tous'||s.type===sigFilter.type;
+    return matchSearch&&matchStatus&&matchType;
+  });
+
+  const kpis=[
+    {v:all.length,l:'Total',c:''},
+    {v:all.filter(s=>s.statut==='nouveau').length,l:'Nouveaux',c:'red'},
+    {v:all.filter(s=>s.statut==='en_cours').length,l:'En cours',c:'yellow'},
+    {v:all.filter(s=>s.statut==='résolu').length,l:'Résolus',c:'green'},
+  ];
+  document.getElementById('sigKpiRow').innerHTML=kpis.map(k=>`<div class="kpi-card ${k.c}"><div class="kpi-value">${k.v}</div><div class="kpi-label">${k.l}</div></div>`).join('');
+  document.getElementById('sigPagInfo').textContent=`${data.length} résultat(s)`;
+  document.getElementById('sigTableBody').innerHTML=data.map(s=>`
+    <tr>
+      <td style="font-size:.75rem;color:var(--gray)">#${s.id}</td>
+      <td>${TYPES_SIG[s.type]?.ico} <span style="font-size:.8rem;font-weight:600">${TYPES_SIG[s.type]?.label}</span></td>
+      <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s.desc}">${s.desc}</td>
+      <td>📍 ${s.quartier}</td>
+      <td style="font-size:.8rem">${s.date}</td>
+      <td><select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateSigStatus(${s.id},this.value)">
+        <option value="nouveau" ${s.statut==='nouveau'?'selected':''}>🔵 Nouveau</option>
+        <option value="en_cours" ${s.statut==='en_cours'?'selected':''}>🟡 En cours</option>
+        <option value="résolu" ${s.statut==='résolu'?'selected':''}>✅ Résolu</option>
+      </select></td>
+      <td style="font-size:.8rem">${s.agent||'<span style="color:var(--gray)">Non assigné</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="action-btn blue" onclick="openSigModal(${s.id})">👁 Voir</button>
+        <button class="action-btn" onclick="assignAgent(${s.id})">👤 Assigner</button>
+      </td>
+    </tr>`).join('');
+}
+function filterSig(v){sigFilter.search=v;renderSigTable();}
+function filterSigStatus(v){sigFilter.statut=v;renderSigTable();}
+function filterSigType(v){sigFilter.type=v;renderSigTable();}
+function updateSigStatus(id,val){
+  const d=getSigs();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveSigs(d);}
+  updateNavBadges();renderOverview();showToast(`✅ Statut mis à jour : ${val.replace('_',' ')}`);
+}
+function quickUpdateSig(id){showSection('signalements',document.querySelectorAll('.nav-item')[1]);}
+
+// ============================= DEMANDES =============================
+function renderDemTable(){
+  const all=getDems();
+  let data=all.filter(d=>{
+    const m=!demFilter.search||d.citoyen.toLowerCase().includes(demFilter.search.toLowerCase())||d.type_doc.toLowerCase().includes(demFilter.search.toLowerCase());
+    const ms=demFilter.statut==='tous'||d.statut===demFilter.statut;
+    return m&&ms;
+  });
+  const kpis=[
+    {v:all.length,l:'Total',c:''},
+    {v:all.filter(d=>d.statut==='en_attente').length,l:'En attente',c:'red'},
+    {v:all.filter(d=>d.statut==='en_cours'||d.statut==='prêt').length,l:'En cours / Prêts',c:'yellow'},
+    {v:all.filter(d=>d.statut==='livré').length,l:'Livrés',c:'green'},
+  ];
+  document.getElementById('demKpiRow').innerHTML=kpis.map(k=>`<div class="kpi-card ${k.c}"><div class="kpi-value">${k.v}</div><div class="kpi-label">${k.l}</div></div>`).join('');
+  document.getElementById('demPagInfo').textContent=`${data.length} résultat(s)`;
+  document.getElementById('demTableBody').innerHTML=data.map(d=>{
+    const statColors={en_attente:'en_attente',en_cours:'en_cours',prêt:'résolu',livré:'résolu'};
+    return`<tr>
+      <td style="font-size:.75rem;color:var(--gray)">#${d.id}</td>
+      <td class="td-name">${d.citoyen}<div style="font-size:.73rem;color:var(--gray)">${d.tel}</div></td>
+      <td>📄 ${d.type_doc}</td>
+      <td style="font-size:.8rem">${d.date}</td>
+      <td><select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateDemStatus(${d.id},this.value)">
+        <option value="en_attente" ${d.statut==='en_attente'?'selected':''}>⏳ En attente</option>
+        <option value="en_cours" ${d.statut==='en_cours'?'selected':''}>🟡 En cours</option>
+        <option value="prêt" ${d.statut==='prêt'?'selected':''}>✅ Prêt</option>
+        <option value="livré" ${d.statut==='livré'?'selected':''}>📦 Livré</option>
+      </select></td>
+      <td style="font-size:.8rem">${d.agent||'<span style="color:var(--gray)">Non assigné</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="action-btn blue" onclick="openDemModal(${d.id})">👁 Voir</button>
+        <button class="action-btn green" onclick="assignDemAgent(${d.id})">👤 Assigner</button>
+      </td>
+    </tr>`}).join('');
+}
+function filterDem(v){demFilter.search=v;renderDemTable();}
+function filterDemStatus(v){demFilter.statut=v;renderDemTable();}
+function updateDemStatus(id,val){
+  const d=getDems();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveDems(d);}
+  updateNavBadges();showToast(`✅ Statut demande mis à jour`);
+}
+
+// ============================= REVENUS =============================
+function renderRevenus(){
+  const pays=getPays();
+  const totalPaye=pays.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0);
+  const fonciere=pays.filter(p=>p.statut==='payé'&&p.type_taxe==='Taxe foncière').reduce((a,b)=>a+b.montant,0);
+  const patente=pays.filter(p=>p.statut==='payé'&&p.type_taxe==='Patente').reduce((a,b)=>a+b.montant,0);
+  const enAttente=pays.filter(p=>p.statut==='en_attente').reduce((a,b)=>a+b.montant,0);
+  document.getElementById('revKpiRow').innerHTML=`
+    <div class="revenu-card"><div class="revenu-label">💰 Total collecté</div><div class="revenu-value">${totalPaye.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.statut==='payé').length} paiements</div></div>
+    <div class="revenu-card green"><div class="revenu-label">🏠 Taxe foncière</div><div class="revenu-value">${fonciere.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.type_taxe==='Taxe foncière').length} contribuables</div></div>
+    <div class="revenu-card orange"><div class="revenu-label">💼 Patente</div><div class="revenu-value">${patente.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.type_taxe==='Patente').length} entreprises</div></div>
+    <div class="revenu-card yellow"><div class="revenu-label">⏳ En attente</div><div class="revenu-value">${enAttente.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.statut==='en_attente').length} à relancer</div></div>`;
+
+  // Full chart
+  const mois=['Janv','Févr','Mars','Avr','Mai','Juin'];
+  const rev=[4850000,5200000,4100000,6300000,5800000,totalPaye];
+  if(charts.revFull) charts.revFull.destroy();
+  charts.revFull=new Chart(document.getElementById('chartRevenusFull'),{type:'line',data:{labels:mois,datasets:[{label:'Revenus FCFA',data:rev,borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.08)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#1a56db'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v>=1000000?`${(v/1000000).toFixed(1)}M`:`${(v/1000).toFixed(0)}K`}}}}});
+
+  let paysFiltered=pays.filter(p=>{
+    const ms=!payFilter.search||p.citoyen.toLowerCase().includes(payFilter.search.toLowerCase())||p.recu.toLowerCase().includes(payFilter.search.toLowerCase());
+    const mt=payFilter.type==='tous'||p.type_taxe===payFilter.type;
+    const mst=payFilter.statut==='tous'||p.statut===payFilter.statut;
+    return ms&&mt&&mst;
+  });
+  document.getElementById('payPagInfo').textContent=`${paysFiltered.length} transaction(s) — Total: ${paysFiltered.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0).toLocaleString('fr-FR')} FCFA`;
+  document.getElementById('payTableBody').innerHTML=paysFiltered.map(p=>`
+    <tr>
+      <td style="font-size:.75rem;font-weight:600;color:var(--blue)">${p.recu}</td>
+      <td class="td-name">${p.citoyen}</td>
+      <td style="font-size:.82rem">${p.type_taxe}</td>
+      <td style="font-weight:700;color:#1e293b">${p.montant.toLocaleString('fr-FR')} FCFA</td>
+      <td style="font-size:.8rem">${p.date}</td>
+      <td style="font-size:.8rem">${p.mode==='Airtel Money'?'📱 Airtel':p.mode==='Moov Money'?'📱 Moov':p.mode==='Espèces'?'💵 Espèces':'🏦 Virement'}</td>
+      <td><span class="badge badge-${p.statut}">${p.statut==='payé'?'✅ Payé':'⏳ En attente'}</span></td>
+      <td>${p.statut==='payé'?`<button class="action-btn blue" onclick="showToast('📄 Reçu ${p.recu} téléchargé')">📄 Reçu</button>`:'<button class="action-btn" onclick="showToast(\'📨 Relance envoyée par SMS\')">📨 Relancer</button>'}</td>
+    </tr>`).join('');
+}
+function filterPay(v){payFilter.search=v;renderRevenus();}
+function filterPayType(v){payFilter.type=v;renderRevenus();}
+function filterPayStatus(v){payFilter.statut=v;renderRevenus();}
+
+// ============================= ALERTES ADMIN =============================
+function renderAlertesAdmin(){
+  const alertes=getAlertes();
+  const ICONS={urgence:'🚨',alerte:'⚠️',info:'ℹ️',evenement:'🎉'};
+  document.getElementById('alerteAdminList').innerHTML=alertes.length?alertes.map(a=>`
+    <div class="alerte-admin-item">
+      <div class="aa-stripe ${a.type}"></div>
+      <div class="aa-body">
+        <div class="aa-title">${ICONS[a.type]} ${a.titre}</div>
+        <div class="aa-msg">${a.msg}</div>
+        <div class="aa-meta">
+          <span>📅 ${a.date} ${a.heure}</span>
+          <span>📍 ${a.quartiers.includes('tous')?'Toute la commune':a.quartiers.join(', ')}</span>
+        </div>
+      </div>
+      <div class="aa-actions">
+        <span class="badge badge-${a.type==='urgence'?'urgence':a.type==='info'?'info':'evenement'}">${a.type}</span>
+        <button class="action-btn red" onclick="deleteAlerte(${a.id})">🗑</button>
+      </div>
+    </div>`).join(''):'<div style="padding:24px;text-align:center;color:var(--gray)">Aucune alerte publiée</div>';
+}
+function publierAlerte(){
+  const type=document.querySelector('input[name="urg"]:checked').value;
+  const titre=document.getElementById('newAlerteTitre').value.trim();
+  const msg=document.getElementById('newAlerteMsg').value.trim();
+  const quartiers=Array.from(document.querySelectorAll('.qc-item input:checked')).map(c=>c.value);
+  if(!titre){showToast('⚠️ Veuillez saisir un titre');return;}
+  if(!msg){showToast('⚠️ Veuillez saisir un message');return;}
+  if(!quartiers.length){showToast('⚠️ Sélectionnez au moins un quartier');return;}
+  const alertes=getAlertes();
+  alertes.unshift({id:Date.now(),type,titre,msg,quartiers,date:new Date().toISOString().slice(0,10),heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),lien:'',auteur:'Admin'});
+  saveAlertes(alertes);
+  document.getElementById('newAlerteTitre').value='';
+  document.getElementById('newAlerteMsg').value='';
+  document.querySelectorAll('.qc-item input').forEach(c=>c.checked=false);
+  renderAlertesAdmin();
+  showToast('✅ Alerte publiée et envoyée aux citoyens !');
+}
+function deleteAlerte(id){
+  const d=getAlertes().filter(a=>a.id!==id);saveAlertes(d);renderAlertesAdmin();showToast('🗑️ Alerte supprimée');
+}
+
+// ============================= AGENTS =============================
+function renderAgents(){
+  const agents=getAgents();
+  document.getElementById('agentsGrid').innerHTML=agents.map(a=>`
+    <div class="agent-card">
+      <div class="agent-avatar">${a.nom[0]}</div>
+      <div class="agent-name"><span class="agent-status ${a.actif?'':'off'}"></span>${a.nom}</div>
+      <div class="agent-role">${a.role}</div>
+      <div style="font-size:.75rem;color:var(--gray);margin-top:4px">📍 ${a.quartier}</div>
+      <div class="agent-stats">
+        <div class="agent-stat"><div class="n">${a.sigs_traites}</div><div class="l">Signalements</div></div>
+        <div class="agent-stat"><div class="n">${a.dems_traitees}</div><div class="l">Demandes</div></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:6px">
+        <button class="action-btn" style="flex:1" onclick="showToast('📧 Message envoyé à ${a.nom}')">📧 Message</button>
+        <button class="action-btn ${a.actif?'red':'green'}" style="flex:1" onclick="toggleAgent(${a.id})">${a.actif?'⏸ Désactiver':'▶ Activer'}</button>
+      </div>
+    </div>`).join('');
+}
+function toggleAgent(id){
+  const d=getAgents();const a=d.find(x=>x.id===id);if(a){a.actif=!a.actif;localStorage.setItem('agents_data',JSON.stringify(d));}
+  renderAgents();showToast('✅ Statut agent mis à jour');
+}
+
+// ============================= MODALS =============================
+function openSigModal(id){
+  const s=getSigs().find(x=>x.id===id);if(!s)return;
+  document.getElementById('modalTitle').textContent=`${TYPES_SIG[s.type]?.ico} Signalement #${s.id}`;
+  document.getElementById('modalBody').innerHTML=`
+    ${s.photo?`<img src="${s.photo}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:180px;object-fit:cover">`:''}
+    <div class="detail-row"><strong>Type</strong>${TYPES_SIG[s.type]?.ico} ${TYPES_SIG[s.type]?.label}</div>
+    <div class="detail-row"><strong>Citoyen</strong>${s.citoyen||'—'}</div>
+    <div class="detail-row"><strong>Téléphone</strong>${s.tel||'—'}</div>
+    <div class="detail-row"><strong>Quartier</strong>📍 ${s.quartier}</div>
+    <div class="detail-row"><strong>Date</strong>📅 ${s.date}</div>
+    <div class="detail-row"><strong>GPS</strong>🌐 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div>
+    <div class="detail-row" style="align-items:flex-start"><strong>Description</strong><span>${s.desc}</span></div>
+    <div class="detail-row"><strong>Statut</strong><span class="badge badge-${s.statut}">${s.statut.replace('_',' ')}</span></div>
+    <div class="detail-row"><strong>Agent</strong>${s.agent||'<span style="color:var(--gray)">Non assigné</span>'}</div>
+    <div class="modal-status-update">
+      <div style="font-size:.82rem;font-weight:600;margin-bottom:8px">Mettre à jour le statut :</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${['nouveau','en_cours','résolu'].map(st=>`<button class="action-btn ${s.statut===st?'blue':''}" onclick="updateSigStatus(${s.id},'${st}');closeModal()">${st.replace('_',' ')}</button>`).join('')}
+      </div>
+      <div style="margin-top:12px;font-size:.82rem;font-weight:600;margin-bottom:8px">Assigner un agent :</div>
+      <select class="filter-select" style="width:100%" onchange="assignSigAgent(${s.id},this.value)">
+        <option value="">-- Sélectionner un agent --</option>
+        ${AGENTS_LIST.map(a=>`<option value="${a}" ${s.agent===a?'selected':''}>${a}</option>`).join('')}
+      </select>
+    </div>`;
+  document.getElementById('modal').classList.add('show');
+}
+function openDemModal(id){
+  const d=getDems().find(x=>x.id===id);if(!d)return;
+  document.getElementById('modalTitle').textContent=`📋 Demande #${d.id}`;
+  document.getElementById('modalBody').innerHTML=`
+    <div class="detail-row"><strong>Citoyen</strong>${d.citoyen}</div>
+    <div class="detail-row"><strong>Téléphone</strong>${d.tel}</div>
+    <div class="detail-row"><strong>Document</strong>📄 ${d.type_doc}</div>
+    <div class="detail-row"><strong>Date demande</strong>📅 ${d.date}</div>
+    <div class="detail-row"><strong>Statut</strong><span class="badge badge-${d.statut==='prêt'||d.statut==='livré'?'résolu':d.statut}">${d.statut}</span></div>
+    <div class="detail-row"><strong>Agent</strong>${d.agent||'<span style="color:var(--gray)">Non assigné</span>'}</div>
+    ${d.commentaire?`<div class="detail-row"><strong>Commentaire</strong>${d.commentaire}</div>`:''}
+    <div class="modal-status-update">
+      <div style="font-size:.82rem;font-weight:600;margin-bottom:8px">Mettre à jour le statut :</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${['en_attente','en_cours','prêt','livré'].map(st=>`<button class="action-btn ${d.statut===st?'blue':''}" onclick="updateDemStatus(${d.id},'${st}');closeModal()">${st}</button>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('modal').classList.add('show');
+}
+function assignAgent(id){openSigModal(id);}
+function assignDemAgent(id){openDemModal(id);}
+function assignSigAgent(id,agent){
+  const d=getSigs();const s=d.find(x=>x.id===id);if(s&&agent){s.agent=agent;saveSigs(d);renderSigTable();showToast(`✅ ${agent} assigné au signalement`);}
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+});
+
+// ============================= NAVIGATION =============================
+const SECTION_TITLES={'overview':'Vue d\'ensemble','signalements':'Signalements Citoyens','demandes':'Demandes Administratives','revenus':'Revenus Fiscaux','alertes_admin':'Alertes & Actualités','agents':'Gestion des Agents'};
+function showSection(id,navEl){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(navEl) navEl.classList.add('active');
+  document.getElementById('breadcrumbText').textContent=SECTION_TITLES[id]||id;
+  if(window.innerWidth<=700) document.getElementById('sidebar').classList.remove('open');
+  if(id==='signalements') renderSigTable();
+  else if(id==='demandes') renderDemTable();
+  else if(id==='revenus') renderRevenus();
+  else if(id==='alertes_admin') renderAlertesAdmin();
+  else if(id==='agents') renderAgents();
+  else if(id==='overview') renderOverview();
+}
+
+// ============================= EXPORT =============================
+function exportCSV(){
+  const pays=getPays();
+  const header='Réf,Citoyen,Type,Montant,Date,Mode,Statut\n';
+  const rows=pays.map(p=>`${p.recu},${p.citoyen},${p.type_taxe},${p.montant},${p.date},${p.mode},${p.statut}`).join('\n');
+  const blob=new Blob([header+rows],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='revenus_mairie.csv';a.click();
+  showToast('📥 Export CSV téléchargé');
+}
+
+// ============================= TOAST =============================
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+</script>
+</body>
+</html>

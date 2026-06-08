@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Espace Citoyen — Mairie Numérique</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --blue:#1a56db;--blue-dark:#0e3a8c;--blue-light:#eff6ff;
+      --green:#16a34a;--red:#dc2626;--red-light:#fef2f2;
+      --orange:#ea580c;--orange-light:#fff7ed;
+      --yellow:#d97706;--purple:#7c3aed;
+      --gray:#6b7280;--bg:#f1f5f9;
+    }
+    body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:#1e293b;padding-bottom:76px;}
+
+    /* TOP BAR */
+    .topbar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;}
+    .topbar .logo{flex:1;font-size:1rem;font-weight:700;}
+    .topbar a{color:#fff;text-decoration:none;font-size:.8rem;opacity:.8;}
+    .notif-bell{position:relative;cursor:pointer;}
+    .notif-bell .dot{position:absolute;top:-3px;right:-3px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid #fff;}
+
+    /* BOTTOM NAV */
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid #e2e8f0;display:flex;z-index:200;box-shadow:0 -4px 16px rgba(0,0,0,.08);}
+    .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--gray);font-size:.65rem;font-weight:600;transition:.2s;gap:3px;position:relative;}
+    .bnav-item .ico{font-size:1.3rem;}
+    .bnav-item.active{color:var(--blue);}
+    .bnav-item.active .ico{transform:translateY(-2px);}
+    .bnav-badge{position:absolute;top:4px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;}
+
+    /* PAGES */
+    .page{display:none;padding:16px;max-width:680px;margin:0 auto;}
+    .page.active{display:block;}
+
+    /* CARDS */
+    .card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:14px;}
+    .card-title{font-size:.92rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+    label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:5px;margin-top:12px;}
+    label:first-of-type{margin-top:0;}
+    input,textarea,select{width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:.88rem;font-family:inherit;outline:none;transition:.2s;}
+    input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+    textarea{resize:vertical;min-height:75px;}
+
+    /* ACCUEIL */
+    .welcome-card{background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;border-radius:16px;padding:22px;margin-bottom:14px;}
+    .welcome-card h2{font-size:1.15rem;font-weight:700;margin-bottom:6px;}
+    .welcome-card p{font-size:.85rem;opacity:.88;margin-bottom:18px;}
+    .quick-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+    .qa-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:.2s;text-decoration:none;color:#fff;display:block;}
+    .qa-btn:hover{background:rgba(255,255,255,.25);}
+    .qa-btn .qa-ico{font-size:1.5rem;margin-bottom:6px;}
+    .qa-btn .qa-lbl{font-size:.78rem;font-weight:600;}
+    .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+    .stat-mini{background:#fff;border-radius:12px;padding:14px 10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+    .stat-mini .n{font-size:1.5rem;font-weight:800;color:var(--blue);}
+    .stat-mini .l{font-size:.7rem;color:var(--gray);margin-top:2px;}
+    .recent-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f1f5f9;}
+    .recent-item:last-child{border-bottom:none;}
+    .ri-ico{width:40px;height:40px;border-radius:10px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+    .ri-info{flex:1;min-width:0;}
+    .ri-title{font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ri-sub{font-size:.75rem;color:var(--gray);margin-top:2px;}
+    .ri-badge{font-size:.7rem;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;}
+    .badge-nouveau{background:#dbeafe;color:#1d4ed8;}
+    .badge-en_cours{background:#fef3c7;color:#92400e;}
+    .badge-résolu{background:#dcfce7;color:#15803d;}
+    .badge-urgence{background:var(--red-light);color:var(--red);}
+    .badge-info{background:var(--blue-light);color:var(--blue);}
+
+    /* SIGNALEMENT */
+    .type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px;}
+    .type-opt{border:2px solid #e2e8f0;border-radius:10px;padding:12px 8px;cursor:pointer;text-align:center;transition:.2s;}
+    .type-opt:hover{border-color:var(--blue);}
+    .type-opt.selected{border-color:var(--blue);background:var(--blue-light);}
+    .type-opt .to-ico{font-size:1.5rem;margin-bottom:4px;}
+    .type-opt .to-lbl{font-size:.76rem;font-weight:600;}
+    .photo-zone{border:2px dashed #d1d5db;border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+    .photo-zone:hover{border-color:var(--blue);}
+    .photo-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+    .photo-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+    .photo-preview img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e2e8f0;}
+    .gps-bar{display:flex;gap:8px;align-items:center;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;}
+    .gps-coords{flex:1;font-size:.8rem;color:#374151;}
+    .gps-btn{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:7px 12px;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap;}
+    .gps-status{font-size:.75rem;margin-top:4px;}
+    .gps-ok{color:var(--green);}
+    .gps-err{color:var(--red);}
+    #map-picker{height:200px;border-radius:10px;margin-top:8px;border:1.5px solid #e2e8f0;}
+    .btn-submit{width:100%;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:13px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:8px;transition:.2s;}
+    .btn-submit:hover{background:var(--blue-dark);}
+
+    /* LISTE SIGNALEMENTS */
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;}
+    .filter-btn{padding:5px 12px;border-radius:20px;border:1.5px solid #d1d5db;background:#fff;font-size:.78rem;font-weight:600;cursor:pointer;transition:.2s;white-space:nowrap;}
+    .filter-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+    .sig-item{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:10px;display:flex;gap:10px;cursor:pointer;transition:.2s;}
+    .sig-item:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.1);}
+    .sig-thumb{width:60px;height:60px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.6rem;}
+    .sig-body{flex:1;min-width:0;}
+    .sig-head{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;}
+    .sig-title{font-size:.88rem;font-weight:700;}
+    .sig-meta{font-size:.73rem;color:var(--gray);margin-top:3px;}
+    .sig-desc{font-size:.8rem;color:#374151;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #map-list{height:430px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+
+    /* ALERTES */
+    .urgence-banner{background:var(--red);color:#fff;border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;}
+    .urgence-banner .ub-ico{font-size:1.8rem;flex-shrink:0;}
+    .urgence-banner h3{font-size:.95rem;font-weight:700;margin-bottom:3px;}
+    .urgence-banner p{font-size:.82rem;opacity:.9;}
+    .quartier-select{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px;}
+    .quartier-select span{font-size:.82rem;font-weight:600;white-space:nowrap;}
+    .quartier-select select{flex:1;padding:7px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:.84rem;}
+    .alerte-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:10px;cursor:pointer;transition:.2s;}
+    .alerte-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.1);}
+    .alerte-stripe{height:4px;}
+    .alerte-stripe.urgence{background:var(--red);}
+    .alerte-stripe.alerte{background:var(--orange);}
+    .alerte-stripe.info{background:var(--blue);}
+    .alerte-stripe.evenement{background:var(--green);}
+    .alerte-inner{padding:14px;}
+    .alerte-head{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:7px;}
+    .alerte-type-badge{font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:20px;}
+    .atb-urgence{background:var(--red-light);color:var(--red);}
+    .atb-alerte{background:var(--orange-light);color:var(--orange);}
+    .atb-info{background:var(--blue-light);color:var(--blue);}
+    .atb-evenement{background:#dcfce7;color:var(--green);}
+    .alerte-title{font-size:.9rem;font-weight:700;margin-bottom:5px;}
+    .alerte-body{font-size:.82rem;color:#374151;line-height:1.5;margin-bottom:8px;}
+    .alerte-footer{display:flex;justify-content:space-between;align-items:center;font-size:.73rem;color:var(--gray);}
+    .q-chips{display:flex;gap:5px;flex-wrap:wrap;}
+    .q-chip{background:#f1f5f9;border-radius:20px;padding:2px 8px;font-size:.71rem;}
+    .new-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:5px;animation:pulse 1.2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    /* COMPTE */
+    .profile-header{background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;border-radius:16px;padding:24px;text-align:center;margin-bottom:14px;}
+    .profile-avatar{width:72px;height:72px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 12px;}
+    .profile-name{font-size:1.1rem;font-weight:700;}
+    .profile-sub{font-size:.82rem;opacity:.8;margin-top:4px;}
+    .doc-list{display:flex;flex-direction:column;gap:8px;}
+    .doc-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#f8fafc;border-radius:10px;}
+    .doc-ico{font-size:1.3rem;flex-shrink:0;}
+    .doc-name{font-size:.85rem;font-weight:600;flex:1;}
+    .doc-date{font-size:.73rem;color:var(--gray);}
+    .doc-btn{background:var(--blue-light);color:var(--blue);border:none;border-radius:6px;padding:5px 10px;font-size:.75rem;font-weight:600;cursor:pointer;}
+    .menu-list{display:flex;flex-direction:column;gap:2px;}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:13px 14px;background:#f8fafc;border-radius:10px;cursor:pointer;transition:.15s;}
+    .menu-item:hover{background:#e2e8f0;}
+    .menu-item .m-ico{font-size:1.2rem;}
+    .menu-item .m-label{font-size:.88rem;font-weight:600;flex:1;}
+    .menu-item .m-arrow{color:var(--gray);font-size:.8rem;}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:flex-end;justify-content:center;}
+    .modal-overlay.show{display:flex;}
+    .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;}
+    .modal-handle{width:36px;height:4px;background:#d1d5db;border-radius:4px;margin:10px auto 0;}
+    .modal-header{padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;}
+    .modal-header h3{font-size:.95rem;font-weight:700;}
+    .close-modal{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray);}
+    .modal-body{padding:18px;}
+    .detail-row{display:flex;gap:10px;margin-bottom:9px;font-size:.84rem;}
+    .detail-row strong{color:#374151;min-width:90px;flex-shrink:0;}
+    .modal-img{width:100%;border-radius:10px;margin-bottom:12px;max-height:180px;object-fit:cover;}
+    .modal-alerte-card{border-radius:10px;padding:14px;margin-bottom:14px;}
+    .modal-alerte-card.urgence{background:var(--red-light);border-left:4px solid var(--red);}
+    .modal-alerte-card.alerte{background:var(--orange-light);border-left:4px solid var(--orange);}
+    .modal-alerte-card.info{background:var(--blue-light);border-left:4px solid var(--blue);}
+    .modal-alerte-card.evenement{background:#f0fdf4;border-left:4px solid var(--green);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(40px);background:#1e293b;color:#fff;padding:11px 22px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:700;transition:.3s;opacity:0;}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+    .empty{text-align:center;padding:36px 16px;color:var(--gray);}
+    .empty .e-ico{font-size:2.8rem;margin-bottom:10px;}
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="logo">🏛️ Mairie Numérique</span>
+  <a href="index.html">Accueil</a>&nbsp;&nbsp;
+  <div class="notif-bell" onclick="showPage('alertes')">
+    🔔<div class="dot" id="notifDot"></div>
+  </div>
+</div>
+
+<!-- =================== PAGE : ACCUEIL =================== -->
+<div id="accueil" class="page active">
+  <div class="welcome-card">
+    <h2>Bonjour, Citoyen 👋</h2>
+    <p>Bienvenue sur votre espace citoyen numérique. Que souhaitez-vous faire aujourd'hui ?</p>
+    <div class="quick-actions">
+      <a class="qa-btn" onclick="showPage('signalement');showSignPage('form')">
+        <div class="qa-ico">🚨</div><div class="qa-lbl">Faire un signalement</div>
+      </a>
+      <a class="qa-btn" onclick="showPage('alertes')">
+        <div class="qa-ico">📢</div><div class="qa-lbl">Voir les alertes</div>
+      </a>
+      <a class="qa-btn" onclick="showPage('signalement');showSignPage('carte')">
+        <div class="qa-ico">🗺️</div><div class="qa-lbl">Carte interactive</div>
+      </a>
+      <a class="qa-btn" onclick="showPage('compte')">
+        <div class="qa-ico">👤</div><div class="qa-lbl">Mon espace</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-mini"><div class="n" id="acStotal">0</div><div class="l">Signalements</div></div>
+    <div class="stat-mini"><div class="n" id="acAlertes" style="color:var(--red)">0</div><div class="l">Alertes actives</div></div>
+    <div class="stat-mini"><div class="n" id="acResolu" style="color:var(--green)">0</div><div class="l">Résolus</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ Activité récente</div>
+    <div id="recentList"></div>
+  </div>
+
+  <div class="card" style="padding:14px 16px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.88rem;font-weight:700">🔔 Dernière alerte</span>
+      <span style="font-size:.78rem;color:var(--blue);cursor:pointer" onclick="showPage('alertes')">Voir tout →</span>
+    </div>
+    <div id="lastAlerte" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- =================== PAGE : SIGNALEMENT =================== -->
+<div id="signalement" class="page">
+  <div style="display:flex;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:14px;">
+    <button class="stab active" onclick="showSignPage('form')" style="flex:1;padding:11px 6px;border:none;background:none;font-size:.82rem;font-weight:700;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;">📝 Signaler</button>
+    <button class="stab" onclick="showSignPage('liste')" style="flex:1;padding:11px 6px;border:none;background:none;font-size:.82rem;font-weight:700;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;">📋 Liste</button>
+    <button class="stab" onclick="showSignPage('carte')" style="flex:1;padding:11px 6px;border:none;background:none;font-size:.82rem;font-weight:700;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;">🗺️ Carte</button>
+  </div>
+
+  <!-- FORM -->
+  <div id="sign-form" class="sign-subpage">
+    <div class="card">
+      <div class="card-title">🚨 Nouveau signalement</div>
+      <label>Type de problème</label>
+      <div class="type-grid">
+        <div class="type-opt selected" onclick="selectType(this,'route')"><div class="to-ico">🛣️</div><div class="to-lbl">Route abîmée</div></div>
+        <div class="type-opt" onclick="selectType(this,'eclairage')"><div class="to-ico">💡</div><div class="to-lbl">Éclairage cassé</div></div>
+        <div class="type-opt" onclick="selectType(this,'ordures')"><div class="to-ico">🗑️</div><div class="to-lbl">Ordures / Déchets</div></div>
+        <div class="type-opt" onclick="selectType(this,'eau')"><div class="to-ico">💧</div><div class="to-lbl">Fuite d'eau</div></div>
+        <div class="type-opt" onclick="selectType(this,'securite')"><div class="to-ico">🔐</div><div class="to-lbl">Sécurité</div></div>
+        <div class="type-opt" onclick="selectType(this,'autre')"><div class="to-ico">⚠️</div><div class="to-lbl">Autre</div></div>
+      </div>
+      <label>Description</label>
+      <textarea id="sigDesc" placeholder="Décrivez le problème en détail..."></textarea>
+      <label>Quartier</label>
+      <select id="sigQuartier">
+        <option value="">-- Sélectionner --</option>
+        <option>Centre-ville</option><option>Quartier Nord</option><option>Quartier Sud</option>
+        <option>Marché Central</option><option>Zone Industrielle</option><option>Résidentiel Est</option>
+      </select>
+      <label>Photos (optionnel)</label>
+      <div class="photo-zone">
+        <div style="font-size:1.6rem">📷</div>
+        <div style="font-size:.82rem;color:var(--gray);margin-top:4px">Appuyez pour ajouter des photos</div>
+        <input type="file" accept="image/*" multiple onchange="handlePhotos(this)"/>
+      </div>
+      <div class="photo-preview" id="photoPreview"></div>
+      <label>Localisation GPS</label>
+      <div class="gps-bar">
+        <div class="gps-coords" id="coordsText">Position non détectée</div>
+        <button class="gps-btn" onclick="getGPS()">📍 Détecter</button>
+      </div>
+      <div class="gps-status" id="gpsStatus"></div>
+      <div id="map-picker"></div>
+      <br/>
+      <button class="btn-submit" onclick="soumettre()">✅ Envoyer le signalement</button>
+    </div>
+  </div>
+
+  <!-- LISTE -->
+  <div id="sign-liste" class="sign-subpage" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+      <div class="stat-mini"><div class="n" id="lstTotal">0</div><div class="l">Total</div></div>
+      <div class="stat-mini"><div class="n" id="lstEnCours" style="color:var(--yellow)">0</div><div class="l">En cours</div></div>
+      <div class="stat-mini"><div class="n" id="lstResolu" style="color:var(--green)">0</div><div class="l">Résolus</div></div>
+    </div>
+    <div class="filters">
+      <button class="filter-btn on" onclick="filtrer(this,'tous')">Tous</button>
+      <button class="filter-btn" onclick="filtrer(this,'nouveau')">🔵 Nouveau</button>
+      <button class="filter-btn" onclick="filtrer(this,'en_cours')">🟡 En cours</button>
+      <button class="filter-btn" onclick="filtrer(this,'résolu')">🟢 Résolu</button>
+    </div>
+    <div id="sigListContainer"></div>
+  </div>
+
+  <!-- CARTE -->
+  <div id="sign-carte" class="sign-subpage" style="display:none">
+    <div class="card" style="padding:12px 14px;margin-bottom:10px;">
+      <span style="font-size:.85rem;font-weight:700">🗺️ Carte des signalements</span>
+      <span style="font-size:.78rem;color:var(--gray);margin-left:8px">Cliquez sur un marqueur</span>
+    </div>
+    <div id="map-list"></div>
+  </div>
+</div>
+
+<!-- =================== PAGE : ALERTES =================== -->
+<div id="alertes" class="page">
+  <div id="urgentBanner"></div>
+  <div class="quartier-select">
+    <span>📍 Mon quartier :</span>
+    <select id="monQuartier" onchange="renderAlertFeed()">
+      <option value="tous">Tous</option>
+      <option>Centre-ville</option><option>Quartier Nord</option><option>Quartier Sud</option>
+      <option>Marché Central</option><option>Zone Industrielle</option><option>Résidentiel Est</option>
+    </select>
+  </div>
+  <div class="filters">
+    <button class="filter-btn on" onclick="filtrerAlerte(this,'tous')">Tous</button>
+    <button class="filter-btn" onclick="filtrerAlerte(this,'urgence')">🔴 Urgence</button>
+    <button class="filter-btn" onclick="filtrerAlerte(this,'alerte')">🟠 Alerte</button>
+    <button class="filter-btn" onclick="filtrerAlerte(this,'info')">🔵 Info</button>
+    <button class="filter-btn" onclick="filtrerAlerte(this,'evenement')">🟢 Événement</button>
+  </div>
+  <div id="alertFeedContainer"></div>
+</div>
+
+<!-- =================== PAGE : COMPTE =================== -->
+<div id="compte" class="page">
+  <div class="profile-header">
+    <div class="profile-avatar">👤</div>
+    <div class="profile-name">Citoyen(ne)</div>
+    <div class="profile-sub">Membre depuis 2026 · Centre-ville</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📁 Mes documents</div>
+    <div class="doc-list">
+      <div class="doc-item"><div class="doc-ico">📄</div><div class="doc-name">Acte de naissance</div><div class="doc-date">Délivré 2025</div><button class="doc-btn">📥 PDF</button></div>
+      <div class="doc-item"><div class="doc-ico">🏠</div><div class="doc-name">Certificat de résidence</div><div class="doc-date">Délivré 2026</div><button class="doc-btn">📥 PDF</button></div>
+      <div class="doc-item"><div class="doc-ico">💼</div><div class="doc-name">Patente commerciale</div><div class="doc-date">Délivré 2025</div><button class="doc-btn">📥 PDF</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ Mon compte</div>
+    <div class="menu-list">
+      <div class="menu-item"><span class="m-ico">🔔</span><span class="m-label">Notifications</span><span class="m-arrow">›</span></div>
+      <div class="menu-item"><span class="m-ico">📍</span><span class="m-label">Mes quartiers suivis</span><span class="m-arrow">›</span></div>
+      <div class="menu-item"><span class="m-ico">📋</span><span class="m-label">Historique démarches</span><span class="m-arrow">›</span></div>
+      <div class="menu-item"><span class="m-ico">💰</span><span class="m-label">Mes paiements</span><span class="m-arrow">›</span></div>
+      <div class="menu-item" onclick="window.location='admin.html'"><span class="m-ico">🏛️</span><span class="m-label">Accès Admin (démo)</span><span class="m-arrow">›</span></div>
+      <div class="menu-item" onclick="window.location='index.html'"><span class="m-ico">🏠</span><span class="m-label">Retour à l'accueil</span><span class="m-arrow">›</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="bnav-item active" onclick="showPage('accueil')"><span class="ico">🏠</span>Accueil</button>
+  <button class="bnav-item" onclick="showPage('signalement');showSignPage('form')"><span class="ico">🚨</span>Signaler</button>
+  <button class="bnav-item" onclick="showPage('alertes')"><span class="ico">📢</span>Alertes<span class="bnav-badge" id="alertBadge" style="display:none">0</span></button>
+  <button class="bnav-item" onclick="showPage('compte')"><span class="ico">👤</span>Compte</button>
+</nav>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><h3 id="modalTitle"></h3><button class="close-modal" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TYPES_SIG = {
+  route:{label:'Route abîmée',ico:'🛣️'},eclairage:{label:'Éclairage cassé',ico:'💡'},
+  ordures:{label:'Ordures / Déchets',ico:'🗑️'},eau:{label:'Fuite d\'eau',ico:'💧'},
+  securite:{label:'Sécurité',ico:'🔐'},autre:{label:'Autre problème',ico:'⚠️'}
+};
+const TYPES_ALERTE = {
+  urgence:{label:'URGENCE',ico:'🚨'},alerte:{label:'ALERTE',ico:'⚠️'},
+  info:{label:'INFORMATION',ico:'ℹ️'},evenement:{label:'ÉVÉNEMENT',ico:'🎉'}
+};
+let currentType='route', photos=[], gpsCoords=null;
+let mapPicker=null, mapList=null, pinMarker=null;
+let filtreSign='tous', filtreAlerte_='tous';
+
+// ---- DATA ----
+function getSig(){
+  const raw=localStorage.getItem('signalements');
+  if(raw) return JSON.parse(raw);
+  const demo=[
+    {id:1,type:'route',desc:'Nid de poule dangereux devant l\'école primaire N°3.',quartier:'Centre-ville',lat:12.365,lng:15.044,statut:'en_cours',date:'2026-06-06',photo:null},
+    {id:2,type:'eclairage',desc:'Lampadaire en panne rue du commerce depuis 3 semaines.',quartier:'Marché Central',lat:12.362,lng:15.041,statut:'nouveau',date:'2026-06-07',photo:null},
+    {id:3,type:'ordures',desc:'Dépôt sauvage à l\'angle de la rue principale.',quartier:'Quartier Nord',lat:12.368,lng:15.048,statut:'résolu',date:'2026-06-05',photo:null},
+    {id:4,type:'eau',desc:'Fuite d\'eau sur la conduite principale, rue Liberté.',quartier:'Quartier Sud',lat:12.360,lng:15.046,statut:'nouveau',date:'2026-06-07',photo:null},
+  ];
+  localStorage.setItem('signalements',JSON.stringify(demo));
+  return demo;
+}
+function saveSig(d){localStorage.setItem('signalements',JSON.stringify(d));}
+function getAlertes(){
+  const raw=localStorage.getItem('alertes');
+  if(raw) return JSON.parse(raw);
+  const today=new Date().toISOString().slice(0,10);
+  const demo=[
+    {id:1,type:'urgence',titre:'Alerte inondation — Quartier Nord',msg:'Des pluies importantes prévues cette nuit. Les habitants du Quartier Nord sont priés d\'évacuer les zones basses. Rejoignez l\'abri à l\'école primaire.',quartiers:['Quartier Nord','Quartier Sud'],date:today,heure:'18:30',lien:'Tel: 1234',lu:false},
+    {id:2,type:'alerte',titre:'Interruption d\'eau — Maintenance réseau',msg:'Interruption d\'eau prévue demain de 8h à 14h. Faites des réserves ce soir.',quartiers:['Centre-ville','Marché Central'],date:today,heure:'10:00',lien:'',lu:false},
+    {id:3,type:'info',titre:'Bureau d\'état civil rénové — Ouverture',msg:'Le bureau d\'état civil accueille désormais les citoyens du lundi au vendredi de 8h à 16h.',quartiers:['tous'],date:today,heure:'08:00',lien:'',lu:true},
+    {id:4,type:'evenement',titre:'Fête de la commune — 15 juin 2026',msg:'Venez célébrer la fête annuelle ! Concert, expositions artisanales, jeux pour enfants. Entrée libre.',quartiers:['tous'],date:today,heure:'09:00',lien:'',lu:true},
+  ];
+  localStorage.setItem('alertes',JSON.stringify(demo));
+  return demo;
+}
+function saveAlertes(d){localStorage.setItem('alertes',JSON.stringify(d));}
+
+// ---- INIT ----
+window.addEventListener('load',()=>{
+  initMaps();
+  renderAccueil();
+  renderAlertFeed();
+  updateBadges();
+});
+
+function initMaps(){
+  mapPicker=L.map('map-picker',{zoomControl:true}).setView([12.365,15.044],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(mapPicker);
+  mapPicker.on('click',e=>{
+    gpsCoords={lat:e.latlng.lat,lng:e.latlng.lng};
+    placePinPicker(e.latlng.lat,e.latlng.lng);
+    document.getElementById('coordsText').textContent=`${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+    document.getElementById('gpsStatus').innerHTML='<span class="gps-ok">✓ Position sélectionnée</span>';
+  });
+  mapList=L.map('map-list').setView([12.365,15.044],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(mapList);
+  renderMapList();
+}
+
+function placePinPicker(lat,lng){
+  if(pinMarker) mapPicker.removeLayer(pinMarker);
+  pinMarker=L.marker([lat,lng]).addTo(mapPicker);
+}
+
+// ---- ACCUEIL ----
+function renderAccueil(){
+  const sigs=getSig(), alertes=getAlertes();
+  const total=sigs.length, resolu=sigs.filter(s=>s.statut==='résolu').length;
+  const activeAlertes=alertes.filter(a=>a.type==='urgence'||a.type==='alerte').length;
+  document.getElementById('acStotal').textContent=total;
+  document.getElementById('acAlertes').textContent=activeAlertes;
+  document.getElementById('acResolu').textContent=resolu;
+
+  // recent
+  const recent=[...sigs.slice(0,2),...alertes.slice(0,2)];
+  const rl=document.getElementById('recentList');
+  if(!recent.length){rl.innerHTML='<div class="empty"><div class="e-ico">📭</div><p>Aucune activité récente</p></div>';return;}
+  rl.innerHTML=recent.map(item=>{
+    if(item.type&&TYPES_SIG[item.type]&&item.desc!==undefined){
+      const t=TYPES_SIG[item.type];
+      return`<div class="recent-item"><div class="ri-ico">${t.ico}</div><div class="ri-info"><div class="ri-title">${t.label}</div><div class="ri-sub">📍 ${item.quartier} · ${item.date}</div></div><span class="ri-badge badge-${item.statut}">${item.statut.replace('_',' ')}</span></div>`;
+    } else {
+      const ta=TYPES_ALERTE[item.type];
+      return`<div class="recent-item"><div class="ri-ico">${ta?.ico||'📢'}</div><div class="ri-info"><div class="ri-title">${item.titre}</div><div class="ri-sub">${item.date} ${item.heure}</div></div><span class="ri-badge badge-${item.type==='urgence'?'urgence':'info'}">${ta?.label||''}</span></div>`;
+    }
+  }).join('');
+
+  // last alerte
+  const la=getAlertes()[0];
+  const ld=document.getElementById('lastAlerte');
+  if(la){
+    const ta=TYPES_ALERTE[la.type];
+    ld.innerHTML=`<div class="alerte-card" onclick="openAlerteModal(${la.id})" style="margin-bottom:0"><div class="alerte-stripe ${la.type}"></div><div class="alerte-inner"><div class="alerte-head"><span class="alerte-type-badge atb-${la.type}">${ta?.ico} ${ta?.label}</span><span style="font-size:.72rem;color:var(--gray)">${la.heure}</span></div><div class="alerte-title">${la.lu?'':'<span class="new-dot"></span>'}${la.titre}</div><div class="alerte-body" style="font-size:.8rem">${la.msg.slice(0,90)}...</div></div></div>`;
+  }
+}
+
+// ---- SIGNALEMENT FORM ----
+function selectType(el,t){
+  document.querySelectorAll('.type-opt').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected'); currentType=t;
+}
+function handlePhotos(input){
+  const files=Array.from(input.files); photos=[];
+  const preview=document.getElementById('photoPreview'); preview.innerHTML='';
+  files.slice(0,4).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{photos.push(e.target.result);const img=document.createElement('img');img.src=e.target.result;preview.appendChild(img);};
+    r.readAsDataURL(f);
+  });
+}
+function getGPS(){
+  const status=document.getElementById('gpsStatus');
+  status.innerHTML='<span style="color:var(--gray)">⏳ Localisation en cours...</span>';
+  if(!navigator.geolocation){status.innerHTML='<span class="gps-err">GPS non disponible.</span>';return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    gpsCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    document.getElementById('coordsText').textContent=`${gpsCoords.lat.toFixed(4)}, ${gpsCoords.lng.toFixed(4)}`;
+    status.innerHTML='<span class="gps-ok">✓ Position GPS détectée</span>';
+    mapPicker.setView([gpsCoords.lat,gpsCoords.lng],16);
+    placePinPicker(gpsCoords.lat,gpsCoords.lng);
+  },()=>{status.innerHTML='<span class="gps-err">Échec — cliquez sur la carte.</span>';});
+}
+function soumettre(){
+  const desc=document.getElementById('sigDesc').value.trim();
+  const quartier=document.getElementById('sigQuartier').value;
+  if(!desc){showToast('⚠️ Veuillez décrire le problème');return;}
+  if(!quartier){showToast('⚠️ Veuillez sélectionner un quartier');return;}
+  const data=getSig();
+  data.unshift({id:Date.now(),type:currentType,desc,quartier,lat:gpsCoords?gpsCoords.lat:12.365+(Math.random()-.5)*.01,lng:gpsCoords?gpsCoords.lng:15.044+(Math.random()-.5)*.01,statut:'nouveau',date:new Date().toISOString().slice(0,10),photo:photos[0]||null});
+  saveSig(data);
+  document.getElementById('sigDesc').value='';document.getElementById('sigQuartier').value='';
+  document.getElementById('photoPreview').innerHTML='';photos=[];gpsCoords=null;
+  document.getElementById('coordsText').textContent='Position non détectée';
+  document.getElementById('gpsStatus').innerHTML='';
+  renderAccueil();updateBadges();
+  showToast('✅ Signalement envoyé !');
+  showSignPage('liste');
+}
+
+// ---- LISTE SIGNALEMENTS ----
+function renderListe(){
+  const data=getSig();
+  const filtered=filtreSign==='tous'?data:data.filter(x=>x.statut===filtreSign);
+  document.getElementById('lstTotal').textContent=data.length;
+  document.getElementById('lstEnCours').textContent=data.filter(x=>x.statut==='en_cours').length;
+  document.getElementById('lstResolu').textContent=data.filter(x=>x.statut==='résolu').length;
+  const c=document.getElementById('sigListContainer');
+  if(!filtered.length){c.innerHTML='<div class="empty"><div class="e-ico">📭</div><p>Aucun signalement</p></div>';return;}
+  c.innerHTML=filtered.map(s=>`
+    <div class="sig-item" onclick="openSigModal(${s.id})">
+      <div class="sig-thumb">${s.photo?`<img src="${s.photo}" style="width:60px;height:60px;border-radius:8px;object-fit:cover">`:TYPES_SIG[s.type]?.ico||'⚠️'}</div>
+      <div class="sig-body">
+        <div class="sig-head"><div class="sig-title">${TYPES_SIG[s.type]?.label||s.type}</div><span class="ri-badge badge-${s.statut}">${s.statut.replace('_',' ')}</span></div>
+        <div class="sig-meta">📍 ${s.quartier} · 📅 ${s.date}</div>
+        <div class="sig-desc">${s.desc}</div>
+      </div>
+    </div>`).join('');
+}
+function filtrer(btn,val){
+  filtreSign=val;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');renderListe();
+}
+
+// ---- CARTE ----
+function renderMapList(){
+  getSig().forEach(s=>{
+    const color=s.statut==='résolu'?'#16a34a':s.statut==='en_cours'?'#d97706':'#dc2626';
+    L.circleMarker([s.lat,s.lng],{radius:9,fillColor:color,color:'#fff',weight:2,fillOpacity:.9}).addTo(mapList)
+      .bindPopup(`<b>${TYPES_SIG[s.type]?.ico} ${TYPES_SIG[s.type]?.label}</b><br>📍 ${s.quartier}<br><small>${s.statut}</small>`);
+  });
+}
+
+// ---- ALERTES ----
+function renderAlertFeed(){
+  const alertes=getAlertes();
+  const quartier=document.getElementById('monQuartier').value;
+  const unread=alertes.filter(a=>!a.lu).length;
+  document.getElementById('alertBadge').textContent=unread;
+  document.getElementById('alertBadge').style.display=unread?'block':'none';
+  document.getElementById('notifDot').style.display=unread?'block':'none';
+
+  // urgent banner
+  const urgentes=alertes.filter(a=>a.type==='urgence'&&(a.quartiers.includes('tous')||a.quartiers.includes(quartier)||quartier==='tous'));
+  const banner=document.getElementById('urgentBanner');
+  if(urgentes.length){
+    const u=urgentes[0];
+    banner.innerHTML=`<div class="urgence-banner"><div class="ub-ico">🚨</div><div><h3>${u.titre}</h3><p>${u.msg.slice(0,100)}...</p></div></div>`;
+  } else banner.innerHTML='';
+
+  let filtered=alertes.filter(a=>{
+    const typeOk=filtreAlerte_==='tous'||a.type===filtreAlerte_;
+    const qOk=quartier==='tous'||a.quartiers.includes('tous')||a.quartiers.includes(quartier);
+    return typeOk&&qOk;
+  });
+  const c=document.getElementById('alertFeedContainer');
+  if(!filtered.length){c.innerHTML='<div class="empty"><div class="e-ico">🔕</div><p>Aucune alerte pour ce quartier</p></div>';return;}
+  c.innerHTML=filtered.map(a=>{
+    const ta=TYPES_ALERTE[a.type];
+    return`<div class="alerte-card" onclick="openAlerteModal(${a.id})">
+      <div class="alerte-stripe ${a.type}"></div>
+      <div class="alerte-inner">
+        <div class="alerte-head"><span class="alerte-type-badge atb-${a.type}">${ta?.ico} ${ta?.label}</span><span style="font-size:.72rem;color:var(--gray)">${a.date} ${a.heure}</span></div>
+        <div class="alerte-title">${a.lu?'':'<span class="new-dot"></span>'}${a.titre}</div>
+        <div class="alerte-body">${a.msg.slice(0,110)}${a.msg.length>110?'...':''}</div>
+        <div class="alerte-footer"><div class="q-chips">${a.quartiers.includes('tous')?'<span class="q-chip">🌍 Toute la commune</span>':a.quartiers.map(q=>`<span class="q-chip">📍 ${q}</span>`).join('')}</div></div>
+      </div></div>`;
+  }).join('');
+}
+function filtrerAlerte(btn,val){
+  filtreAlerte_=val;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');renderAlertFeed();
+}
+
+// ---- MODALS ----
+function openSigModal(id){
+  const s=getSig().find(x=>x.id===id);if(!s)return;
+  document.getElementById('modalTitle').textContent=`${TYPES_SIG[s.type]?.ico} ${TYPES_SIG[s.type]?.label}`;
+  document.getElementById('modalBody').innerHTML=`
+    ${s.photo?`<img class="modal-img" src="${s.photo}">`:''}
+    <div class="detail-row"><strong>Quartier</strong>📍 ${s.quartier}</div>
+    <div class="detail-row"><strong>Date</strong>📅 ${s.date}</div>
+    <div class="detail-row"><strong>GPS</strong>🌐 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div>
+    <div class="detail-row" style="align-items:flex-start"><strong>Description</strong><span>${s.desc}</span></div>
+    <div class="detail-row"><strong>Statut</strong><span class="ri-badge badge-${s.statut}">${s.statut.replace('_',' ')}</span></div>`;
+  document.getElementById('modal').classList.add('show');
+}
+function openAlerteModal(id){
+  const a=getAlertes().find(x=>x.id===id);if(!a)return;
+  const alertes=getAlertes(),item=alertes.find(x=>x.id===id);
+  if(item&&!item.lu){item.lu=true;saveAlertes(alertes);renderAlertFeed();}
+  const ta=TYPES_ALERTE[a.type];
+  document.getElementById('modalTitle').textContent=`${ta?.ico} Alerte`;
+  document.getElementById('modalBody').innerHTML=`
+    <div class="modal-alerte-card ${a.type}">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;margin-bottom:6px">${ta?.ico} ${ta?.label}</div>
+      <div style="font-size:.95rem;font-weight:700;margin-bottom:8px">${a.titre}</div>
+      <p style="font-size:.84rem;line-height:1.6">${a.msg}</p>
+    </div>
+    <div class="detail-row"><strong>Date & Heure</strong>📅 ${a.date} ${a.heure?'à '+a.heure:''}</div>
+    ${a.lien?`<div class="detail-row"><strong>Contact</strong>📞 ${a.lien}</div>`:''}
+    <div style="margin-top:10px;font-size:.8rem;font-weight:600">📍 Quartiers concernés :</div>
+    <div class="q-chips" style="margin-top:6px">${a.quartiers.includes('tous')?'<span class="q-chip">🌍 Toute la commune</span>':a.quartiers.map(q=>`<span class="q-chip">📍 ${q}</span>`).join('')}</div>`;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+});
+
+// ---- NAVIGATION ----
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx=['accueil','signalement','alertes','compte'].indexOf(id);
+  if(idx>=0) document.querySelectorAll('.bnav-item')[idx].classList.add('active');
+  if(id==='signalement'&&document.getElementById('sign-carte').style.display!=='none') setTimeout(()=>mapList.invalidateSize(),100);
+  if(id==='accueil') renderAccueil();
+}
+function showSignPage(id){
+  ['form','liste','carte'].forEach(p=>{
+    document.getElementById(`sign-${p}`).style.display=p===id?'block':'none';
+  });
+  document.querySelectorAll('.stab').forEach((b,i)=>{
+    b.style.color=['form','liste','carte'][i]===id?'var(--blue)':'var(--gray)';
+    b.style.borderBottomColor=['form','liste','carte'][i]===id?'var(--blue)':'transparent';
+  });
+  if(id==='liste') renderListe();
+  if(id==='carte') setTimeout(()=>mapList.invalidateSize(),100);
+}
+function updateBadges(){
+  const unread=getAlertes().filter(a=>!a.lu).length;
+  document.getElementById('alertBadge').textContent=unread;
+  document.getElementById('alertBadge').style.display=unread?'block':'none';
+  document.getElementById('notifDot').style.display=unread?'block':'none';
+}
+
+// ---- TOAST ----
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mairie Numérique — Plateforme Citoyenne</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --blue:#1a56db;--blue-dark:#0e3a8c;--blue-light:#eff6ff;
+      --green:#16a34a;--red:#dc2626;--orange:#ea580c;
+      --gray:#6b7280;--bg:#f1f5f9;--white:#fff;
+    }
+    body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:#1e293b;}
+
+    /* HERO */
+    .hero{background:linear-gradient(135deg,#0e3a8c 0%,#1a56db 50%,#0891b2 100%);color:#fff;padding:56px 20px 48px;text-align:center;position:relative;overflow:hidden;}
+    .hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
+    .hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 16px;font-size:.78rem;font-weight:600;margin-bottom:18px;letter-spacing:.04em;}
+    .hero h1{font-size:2.4rem;font-weight:800;margin-bottom:12px;line-height:1.2;}
+    .hero p{font-size:1.05rem;opacity:.88;max-width:520px;margin:0 auto 32px;line-height:1.6;}
+    .hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+    .btn-hero{padding:14px 28px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.2s;display:inline-block;}
+    .btn-hero-primary{background:#fff;color:var(--blue);border:2px solid #fff;}
+    .btn-hero-primary:hover{background:#f0f9ff;transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.2);}
+    .btn-hero-secondary{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.6);}
+    .btn-hero-secondary:hover{background:rgba(255,255,255,.1);transform:translateY(-2px);}
+    .hero-stats{display:flex;gap:32px;justify-content:center;margin-top:36px;flex-wrap:wrap;}
+    .hero-stat .num{font-size:1.8rem;font-weight:800;}
+    .hero-stat .lbl{font-size:.78rem;opacity:.75;margin-top:2px;}
+
+    /* TABS */
+    .tabs-wrap{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.07);position:sticky;top:0;z-index:100;}
+    .tabs{display:flex;justify-content:center;max-width:700px;margin:0 auto;}
+    .tab-btn{flex:1;padding:16px 12px;border:none;background:none;font-size:.92rem;font-weight:700;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+    .tab-btn:hover{color:var(--blue);}
+
+    /* CONTENT */
+    .tab-content{display:none;padding:32px 16px;max-width:1100px;margin:0 auto;}
+    .tab-content.active{display:block;}
+
+    /* MODULES GRID */
+    .section-header{text-align:center;margin-bottom:28px;}
+    .section-header h2{font-size:1.5rem;font-weight:800;margin-bottom:8px;}
+    .section-header p{color:var(--gray);font-size:.92rem;}
+
+    .modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;}
+    .module-card{background:#fff;border-radius:14px;padding:22px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.06);border:2px solid transparent;transition:all .25s;position:relative;overflow:hidden;}
+    .module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--blue);}
+    .module-card.green::before{background:var(--green);}
+    .module-card.red::before{background:var(--red);}
+    .module-card.orange::before{background:var(--orange);}
+    .module-card.purple::before{background:#7c3aed;}
+    .module-card.cyan::before{background:#0891b2;}
+    .module-card.yellow::before{background:#d97706;}
+    .module-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:0 12px 28px rgba(26,86,219,.15);}
+    .module-card.live{border-color:var(--green);}
+    .module-card .live-badge{position:absolute;top:14px;right:14px;background:var(--green);color:#fff;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;}
+    .module-icon{font-size:2rem;margin-bottom:10px;}
+    .module-title{font-size:1rem;font-weight:700;margin-bottom:6px;}
+    .module-desc{font-size:.82rem;color:var(--gray);margin-bottom:12px;line-height:1.5;}
+    .module-details{display:none;border-top:1px solid #f1f5f9;padding-top:12px;margin-top:4px;}
+    .module-card.open .module-details{display:block;}
+    .module-card.open{border-color:var(--blue);background:var(--blue-light);}
+    .module-details ul{padding-left:16px;}
+    .module-details li{font-size:.82rem;color:#374151;margin-bottom:5px;line-height:1.5;}
+    .module-link{display:inline-block;margin-top:12px;background:var(--blue);color:#fff;padding:7px 16px;border-radius:7px;font-size:.8rem;font-weight:700;text-decoration:none;transition:.15s;}
+    .module-link:hover{background:var(--blue-dark);}
+
+    /* STACK */
+    .stack-section{margin-bottom:32px;}
+    .stack-section-title{font-size:1.1rem;font-weight:700;margin-bottom:14px;color:var(--blue);display:flex;align-items:center;gap:8px;padding-left:12px;border-left:4px solid var(--blue);}
+    .stack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+    .stack-card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:5px;transition:.2s;}
+    .stack-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.1);}
+    .stack-layer{font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--gray);letter-spacing:.04em;}
+    .stack-tech{font-size:1rem;font-weight:800;color:#1e293b;}
+    .stack-why{font-size:.78rem;color:var(--gray);line-height:1.4;}
+    .arch-box{background:#fff;border-radius:14px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-top:16px;}
+    .arch-box h3{font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:16px;}
+    .arch-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .arch-step{background:var(--blue-light);border:1.5px solid #bfdbfe;border-radius:8px;padding:10px 16px;font-size:.83rem;font-weight:700;color:var(--blue);}
+    .arch-arrow{color:var(--gray);font-size:1.1rem;font-weight:700;}
+
+    /* PHASES */
+    .phases-list{display:flex;flex-direction:column;gap:20px;}
+    .phase-card{background:#fff;border-radius:14px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.07);border-left:5px solid var(--blue);}
+    .phase-card:nth-child(2){border-left-color:var(--green);}
+    .phase-card:nth-child(3){border-left-color:var(--orange);}
+    .phase-card:nth-child(4){border-left-color:#7c3aed;}
+    .phase-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+    .phase-num{width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .phase-card:nth-child(2) .phase-num{background:var(--green);}
+    .phase-card:nth-child(3) .phase-num{background:var(--orange);}
+    .phase-card:nth-child(4) .phase-num{background:#7c3aed;}
+    .phase-info h3{font-size:1.05rem;font-weight:700;}
+    .phase-info .dur{font-size:.8rem;color:var(--gray);margin-top:3px;}
+    .phase-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+    .phase-item{background:#f8fafc;border-radius:8px;padding:10px 14px;font-size:.83rem;display:flex;align-items:center;gap:8px;}
+    .phase-item::before{content:'✓';color:var(--green);font-weight:700;font-size:.9rem;}
+    .phase-current{background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;border-radius:12px;padding:24px;text-align:center;margin-top:24px;}
+    .phase-current h3{font-size:1.2rem;margin-bottom:8px;}
+    .phase-current p{opacity:.88;margin-bottom:18px;font-size:.9rem;}
+    .phase-current-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+    .btn-white{background:#fff;color:var(--blue);border:none;padding:11px 24px;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;transition:.2s;}
+    .btn-white:hover{background:#f0f9ff;transform:translateY(-2px);}
+    .btn-outline-white{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.6);padding:11px 24px;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;transition:.2s;}
+    .btn-outline-white:hover{background:rgba(255,255,255,.1);}
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🏛️ PLATEFORME MUNICIPALE NUMÉRIQUE</div>
+  <h1>Mairie Numérique</h1>
+  <p>Rapprochez les citoyens de leur mairie grâce à une plateforme complète de services en ligne — signalements, alertes, paiements et démarches administratives.</p>
+  <div class="hero-btns">
+    <a href="mobile.html" class="btn-hero btn-hero-primary">📱 App Mobile Citoyenne</a>
+    <a href="admin.html" class="btn-hero btn-hero-secondary">🏛️ Dashboard Admin</a>
+  </div>
+  <div style="margin-top:12px;font-size:.8rem;opacity:.65">Compatible Android · iOS · Installable sur l'écran d'accueil (PWA)</div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">8</div><div class="lbl">Modules</div></div>
+    <div class="hero-stat"><div class="num">3</div><div class="lbl">Apps disponibles</div></div>
+    <div class="hero-stat"><div class="num">4</div><div class="lbl">Phases</div></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('modules')">📦 Modules</button>
+    <button class="tab-btn" onclick="showTab('stack')">⚙️ Stack Technique</button>
+    <button class="tab-btn" onclick="showTab('phases')">🚀 Phases</button>
+  </div>
+</div>
+
+<!-- ===================== MODULES ===================== -->
+<div id="modules" class="tab-content active">
+  <div class="section-header">
+    <h2>8 Modules Clés</h2>
+    <p>Cliquez sur un module pour voir les détails. Les modules <span style="color:var(--green);font-weight:700">verts</span> sont déjà développés.</p>
+  </div>
+  <div class="modules-grid">
+
+    <div class="module-card red" onclick="toggleModule(this)">
+      <div class="module-icon">📋</div>
+      <div class="module-title">Démarches Administratives</div>
+      <div class="module-desc">Demander actes de naissance/mariage/décès sans file d'attente, avec suivi en temps réel.</div>
+      <div class="module-details">
+        <ul>
+          <li>Acte de naissance, mariage, décès</li>
+          <li>Certificat de résidence</li>
+          <li>Légalisation de documents</li>
+          <li>Déclaration de naissance / décès</li>
+          <li>Inscription listes électorales</li>
+          <li>Suivi avec numéro de dossier + SMS</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="module-card live green" onclick="window.location='citoyen.html'">
+      <div class="live-badge">✅ LIVE</div>
+      <div class="module-icon">🚨</div>
+      <div class="module-title">Signalement Citoyen</div>
+      <div class="module-desc">Signaler routes abîmées, éclairage cassé, ordures avec photo + GPS.</div>
+      <div class="module-details"></div>
+      <a href="citoyen.html" class="module-link">Ouvrir →</a>
+    </div>
+
+    <div class="module-card yellow" onclick="toggleModule(this)">
+      <div class="module-icon">💰</div>
+      <div class="module-title">Paiement des Taxes</div>
+      <div class="module-desc">Taxe foncière, patente via Airtel Money / Moov Money, reçu numérique officiel.</div>
+      <div class="module-details">
+        <ul>
+          <li>Taxe foncière et patente</li>
+          <li>Airtel Money / Moov Money</li>
+          <li>Reçu numérique officiel PDF</li>
+          <li>Historique des paiements</li>
+          <li>Rappels automatiques avant échéance</li>
+          <li>Dashboard fiscal mairie</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="module-card live green" onclick="window.location='citoyen.html'">
+      <div class="live-badge">✅ LIVE</div>
+      <div class="module-icon">📢</div>
+      <div class="module-title">Alertes & Actualités</div>
+      <div class="module-desc">Notifications officielles ciblées par quartier (inondations, annonces, événements).</div>
+      <div class="module-details"></div>
+      <a href="citoyen.html" class="module-link">Ouvrir →</a>
+    </div>
+
+    <div class="module-card purple" onclick="toggleModule(this)">
+      <div class="module-icon">🗳️</div>
+      <div class="module-title">Participation Citoyenne</div>
+      <div class="module-desc">Sondages, budget participatif, pétitions, forum de quartier.</div>
+      <div class="module-details">
+        <ul>
+          <li>Sondages et consultations publiques</li>
+          <li>Budget participatif (vote de projets)</li>
+          <li>Pétitions locales</li>
+          <li>Forum de discussion par quartier</li>
+          <li>Comptes-rendus des conseils municipaux</li>
+          <li>Résultats transparents en temps réel</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="module-card cyan" onclick="toggleModule(this)">
+      <div class="module-icon">🗺️</div>
+      <div class="module-title">Carte Interactive</div>
+      <div class="module-desc">Localisation des services publics, marchés, zones à risque.</div>
+      <div class="module-details">
+        <ul>
+          <li>Services publics (mairie, hôpitaux, écoles)</li>
+          <li>Marchés et commerces locaux</li>
+          <li>Zones inondables / à risque</li>
+          <li>Points de collecte de déchets</li>
+          <li>Travaux en cours sur la voirie</li>
+          <li>Carte offline disponible (PWA)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="module-card" onclick="toggleModule(this)">
+      <div class="module-icon">👤</div>
+      <div class="module-title">Espace Citoyen</div>
+      <div class="module-desc">Coffre-fort numérique pour tous les documents et l'historique mairie.</div>
+      <div class="module-details">
+        <ul>
+          <li>Compte sécurisé unique (SSO)</li>
+          <li>Stockage de documents officiels</li>
+          <li>Historique de toutes les démarches</li>
+          <li>Profil familial (conjoint, enfants)</li>
+          <li>Authentification biométrique mobile</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="module-card live green" onclick="window.location='admin.html'">
+      <div class="live-badge">✅ LIVE</div>
+      <div class="module-icon">🏛️</div>
+      <div class="module-title">Dashboard Admin Mairie</div>
+      <div class="module-desc">Interface pour les agents : gérer demandes, statistiques, revenus fiscaux.</div>
+      <div class="module-details"></div>
+      <a href="admin.html" class="module-link">Ouvrir →</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== STACK ===================== -->
+<div id="stack" class="tab-content">
+
+  <div class="stack-section">
+    <div class="stack-section-title">📱 Applications Mobiles & Web</div>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="stack-layer">Frontend Mobile</div><div class="stack-tech">Flutter</div><div class="stack-why">Android + iOS en un seul code, performances natives</div></div>
+      <div class="stack-card"><div class="stack-layer">Frontend Web</div><div class="stack-tech">React.js</div><div class="stack-why">Interface admin et portail citoyen web</div></div>
+      <div class="stack-card"><div class="stack-layer">UI Design</div><div class="stack-tech">Tailwind CSS</div><div class="stack-why">Design rapide, responsive, cohérent</div></div>
+      <div class="stack-card"><div class="stack-layer">Cartographie</div><div class="stack-tech">OpenStreetMap + Leaflet</div><div class="stack-why">Gratuit, fonctionne hors ligne</div></div>
+      <div class="stack-card"><div class="stack-layer">PWA</div><div class="stack-tech">Service Workers</div><div class="stack-why">Application offline sur mobile sans store</div></div>
+    </div>
+  </div>
+
+  <div class="stack-section">
+    <div class="stack-section-title">⚙️ Backend & API</div>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="stack-layer">Serveur</div><div class="stack-tech">Node.js + Express</div><div class="stack-why">Rapide, scalable, grande communauté</div></div>
+      <div class="stack-card"><div class="stack-layer">API Style</div><div class="stack-tech">REST API</div><div class="stack-why">Simple et compatible mobile + web</div></div>
+      <div class="stack-card"><div class="stack-layer">Authentification</div><div class="stack-tech">JWT + OAuth2</div><div class="stack-why">Sécurité robuste et connexion sociale</div></div>
+      <div class="stack-card"><div class="stack-layer">Temps réel</div><div class="stack-tech">Socket.io</div><div class="stack-why">Notifications live, suivi dossiers</div></div>
+    </div>
+  </div>
+
+  <div class="stack-section">
+    <div class="stack-section-title">🗄️ Base de données & Stockage</div>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="stack-layer">Base principale</div><div class="stack-tech">PostgreSQL</div><div class="stack-why">Robuste, données structurées, transactions ACID</div></div>
+      <div class="stack-card"><div class="stack-layer">Cache & Sessions</div><div class="stack-tech">Redis</div><div class="stack-why">Sessions rapides, notifications temps réel</div></div>
+      <div class="stack-card"><div class="stack-layer">Fichiers / Documents</div><div class="stack-tech">AWS S3 / Cloudinary</div><div class="stack-why">Stockage photos, PDF et documents officiels</div></div>
+      <div class="stack-card"><div class="stack-layer">Recherche</div><div class="stack-tech">Elasticsearch</div><div class="stack-why">Recherche rapide des dossiers citoyens</div></div>
+    </div>
+  </div>
+
+  <div class="stack-section">
+    <div class="stack-section-title">📲 Paiements & Notifications</div>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="stack-layer">Mobile Money 1</div><div class="stack-tech">Airtel Money API</div><div class="stack-why">Paiement des taxes, solution locale</div></div>
+      <div class="stack-card"><div class="stack-layer">Mobile Money 2</div><div class="stack-tech">Moov Money API</div><div class="stack-why">Alternative de paiement mobile</div></div>
+      <div class="stack-card"><div class="stack-layer">SMS</div><div class="stack-tech">Africa's Talking</div><div class="stack-why">Notifications sans internet, couverture locale</div></div>
+      <div class="stack-card"><div class="stack-layer">Push Notifications</div><div class="stack-tech">Firebase FCM</div><div class="stack-why">Alertes mobiles gratuites, ciblage par quartier</div></div>
+    </div>
+  </div>
+
+  <div class="stack-section">
+    <div class="stack-section-title">🔒 Infrastructure & Sécurité</div>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="stack-layer">Hébergement</div><div class="stack-tech">VPS Ubuntu + Docker</div><div class="stack-why">Contrôle total, déploiement reproductible</div></div>
+      <div class="stack-card"><div class="stack-layer">CI/CD</div><div class="stack-tech">GitHub Actions</div><div class="stack-why">Déploiement automatique à chaque commit</div></div>
+      <div class="stack-card"><div class="stack-layer">SSL</div><div class="stack-tech">Let's Encrypt</div><div class="stack-why">HTTPS gratuit, renouvellement automatique</div></div>
+      <div class="stack-card"><div class="stack-layer">Monitoring</div><div class="stack-tech">Prometheus + Grafana</div><div class="stack-why">Surveiller santé serveur, alertes incidents</div></div>
+    </div>
+  </div>
+
+  <div class="arch-box">
+    <h3>🔄 Architecture — Flux de données</h3>
+    <div class="arch-flow">
+      <div class="arch-step">📱 App Mobile / Web</div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">🔐 API Gateway + Auth</div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">⚙️ Backend Node.js</div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">🗄️ PostgreSQL + Redis</div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">📩 SMS / Push / Email</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PHASES ===================== -->
+<div id="phases" class="tab-content">
+  <div class="section-header">
+    <h2>Plan de Lancement en 4 Phases</h2>
+    <p>Approche progressive pour une adoption réussie</p>
+  </div>
+
+  <div class="phases-list">
+    <div class="phase-card">
+      <div class="phase-header">
+        <div class="phase-num">1</div>
+        <div class="phase-info">
+          <h3>MVP — Produit Minimum Viable</h3>
+          <div class="dur">⏱️ 2 à 3 mois &nbsp;·&nbsp; Statut : <span style="color:var(--green);font-weight:700">✅ En cours</span></div>
+        </div>
+      </div>
+      <div class="phase-items">
+        <div class="phase-item">Authentification citoyenne</div>
+        <div class="phase-item">Signalement citoyen (GPS + photo)</div>
+        <div class="phase-item">Alertes & actualités par quartier</div>
+        <div class="phase-item">Dashboard admin basique</div>
+        <div class="phase-item">Notifications SMS</div>
+        <div class="phase-item">Déploiement en production</div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-header">
+        <div class="phase-num">2</div>
+        <div class="phase-info">
+          <h3>Paiements & Démarches</h3>
+          <div class="dur">⏱️ 1 à 2 mois</div>
+        </div>
+      </div>
+      <div class="phase-items">
+        <div class="phase-item">Paiement Airtel / Moov Money</div>
+        <div class="phase-item">Reçus numériques PDF</div>
+        <div class="phase-item">Demandes de documents officiels</div>
+        <div class="phase-item">Carte interactive commune</div>
+        <div class="phase-item">Espace citoyen personnel</div>
+        <div class="phase-item">Coffre-fort numérique documents</div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-header">
+        <div class="phase-num">3</div>
+        <div class="phase-info">
+          <h3>Participation Citoyenne</h3>
+          <div class="dur">⏱️ 1 à 2 mois</div>
+        </div>
+      </div>
+      <div class="phase-items">
+        <div class="phase-item">Sondages et consultations</div>
+        <div class="phase-item">Budget participatif</div>
+        <div class="phase-item">Pétitions locales</div>
+        <div class="phase-item">Forum de quartier</div>
+        <div class="phase-item">Comptes-rendus municipaux</div>
+        <div class="phase-item">Multilingue (langues locales)</div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-header">
+        <div class="phase-num">4</div>
+        <div class="phase-info">
+          <h3>Optimisation & Expansion</h3>
+          <div class="dur">⏱️ Continu</div>
+        </div>
+      </div>
+      <div class="phase-items">
+        <div class="phase-item">Analytics avancé (IA)</div>
+        <div class="phase-item">Rapports fiscaux automatiques</div>
+        <div class="phase-item">Intégration multi-mairies</div>
+        <div class="phase-item">Application offline (PWA)</div>
+        <div class="phase-item">API publique partenaires</div>
+        <div class="phase-item">Application mobile native</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-current">
+    <h3>🚀 Phase 1 en cours — Démarrer maintenant</h3>
+    <p>Le signalement citoyen et le dashboard admin sont disponibles. Testez-les dès maintenant.</p>
+    <div class="phase-current-btns">
+      <a href="citoyen.html" class="btn-white">👤 App Citoyenne</a>
+      <a href="admin.html" class="btn-outline-white">🏛️ Dashboard Admin</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showTab(id){
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx=['modules','stack','phases'].indexOf(id);
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    window.scrollTo({top:document.querySelector('.tabs-wrap').offsetTop-10,behavior:'smooth'});
+  }
+  function toggleModule(card){
+    if(card.classList.contains('live')) return;
+    card.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
