@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard Admin — Mairie Numérique</title>
+  <title>Tableau de Bord Admin — Mairie Numérique</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -218,12 +218,12 @@
 <!-- ===== SIDEBAR ===== -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <h1>🏛️ Mairie Admin</h1>
-    <p>Tableau de bord municipal</p>
+    <h1>🏛️ Mairie Numérique</h1>
+    <p>Gestion municipale</p>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">Principal</div>
-    <div class="nav-item active" onclick="showSection('overview',this)"><span class="n-ico">📊</span> Vue d'ensemble</div>
+    <div class="nav-item active" onclick="showSection('accueil_admin',this)"><span class="n-ico">📊</span> Tableau de bord</div>
     <div class="nav-item" onclick="showSection('signalements',this)"><span class="n-ico">🚨</span> Signalements <span class="nav-badge" id="navBadgeSig">0</span></div>
     <div class="nav-item" onclick="showSection('demandes',this)"><span class="n-ico">📋</span> Demandes admin <span class="nav-badge" id="navBadgeDem">0</span></div>
     <div class="nav-label">Finances</div>
@@ -250,7 +250,7 @@
   <div class="topbar">
     <div class="topbar-left">
       <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
-      <div class="breadcrumb">Mairie &rsaquo; <span id="breadcrumbText">Vue d'ensemble</span></div>
+      <div class="breadcrumb">Mairie &rsaquo; <span id="breadcrumbText">Tableau de bord</span></div>
     </div>
     <div class="topbar-right">
       <div style="font-size:.8rem;color:var(--gray)">📅 <span id="todayDate"></span></div>
@@ -267,9 +267,9 @@
   <div class="content">
 
     <!-- =========== OVERVIEW =========== -->
-    <div id="overview" class="section active">
+    <div id="accueil_admin" class="section active">
       <div class="section-head">
-        <div><h2>Vue d'ensemble</h2><p>Tableau de bord en temps réel — mise à jour instantanée</p></div>
+        <div><h2>Tableau de bord</h2><p>Tableau de bord en temps réel — mise à jour instantanée</p></div>
         <button class="tb-btn primary" onclick="showSection('signalements',document.querySelectorAll('.nav-item')[1])">+ Nouveau signalement</button>
       </div>
 
@@ -569,7 +569,7 @@ let payFilter={search:'',type:'tous',statut:'tous'};
 window.addEventListener('load',()=>{
   initData();
   document.getElementById('todayDate').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  renderOverview();
+  renderAccueilAdmin();
   updateNavBadges();
 });
 
@@ -586,7 +586,7 @@ function updateNavBadges(){
 }
 
 // ============================= OVERVIEW =============================
-function renderOverview(){
+function renderAccueilAdmin(){
   const sigs=getSigs(), dems=getDems(), pays=getPays();
   const total=sigs.length, nouveau=sigs.filter(s=>s.statut==='nouveau').length;
   const en_cours=sigs.filter(s=>s.statut==='en_cours').length, resolu=sigs.filter(s=>s.statut==='résolu').length;
@@ -684,7 +684,7 @@ function filterSigStatus(v){sigFilter.statut=v;renderSigTable();}
 function filterSigType(v){sigFilter.type=v;renderSigTable();}
 function updateSigStatus(id,val){
   const d=getSigs();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveSigs(d);}
-  updateNavBadges();renderOverview();showToast(`✅ Statut mis à jour : ${val.replace('_',' ')}`);
+  updateNavBadges();renderAccueilAdmin();showToast(`✅ Statut mis à jour : ${val.replace('_',' ')}`);
 }
 function quickUpdateSig(id){showSection('signalements',document.querySelectorAll('.nav-item')[1]);}
 
@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 // ============================= NAVIGATION =============================
-const SECTION_TITLES={'overview':'Vue d\'ensemble','signalements':'Signalements Citoyens','demandes':'Demandes Administratives','revenus':'Revenus Fiscaux','alertes_admin':'Alertes & Actualités','agents':'Gestion des Agents'};
+const SECTION_TITLES={'accueil_admin':'Tableau de bord','signalements':'Signalements Citoyens','demandes':'Demandes Administratives','revenus':'Revenus Fiscaux','alertes_admin':'Alertes & Actualités','agents':'Gestion des Agents'};
 function showSection(id,navEl){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -910,7 +910,7 @@ function showSection(id,navEl){
   else if(id==='revenus') renderRevenus();
   else if(id==='alertes_admin') renderAlertesAdmin();
   else if(id==='agents') renderAgents();
-  else if(id==='overview') renderOverview();
+  else if(id==='accueil_admin') renderAccueilAdmin();
 }
 
 // ============================= EXPORT =============================
