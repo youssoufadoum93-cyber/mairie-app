@@ -1,4 +1,4 @@
-const CACHE = 'mairie-v5';
+const CACHE = 'mairie-v6';
 // Ne jamais mettre mobile.html en cache — toujours charger depuis le réseau
 const ALWAYS_FRESH = ['mobile.html', 'admin.html'];
 
