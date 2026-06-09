@@ -723,9 +723,11 @@ function filterSigType(v){sigFilter.type=v;renderSigTable();}
 
 // ============================= DOLÉANCES CITOYENS =============================
 function getDoleances(){return JSON.parse(localStorage.getItem('doleances')||'[]');}
+function saveDoleances(d){localStorage.setItem('doleances',JSON.stringify(d));}
 const DOL_CATS={route:{label:'Voirie',ico:'🛣️'},eau:{label:'Eau',ico:'💧'},eclairage:{label:'Éclairage',ico:'💡'},ordures:{label:'Ordures',ico:'🗑️'},infrastructure:{label:'Infrastructure',ico:'🏗️'},voirie:{label:'Voirie',ico:'🛣️'},environnement:{label:'Environnement',ico:'🌿'},securite:{label:'Sécurité',ico:'🔐'},social:{label:'Social',ico:'👨‍👩‍👧'},administratif:{label:'Administratif',ico:'📋'},autre:{label:'Autre',ico:'⚠️'}};
 const DOL_URG={haute:{label:'Urgent',ico:'🔴'},normale:{label:'Normal',ico:'🟡'},basse:{label:'Non urgent',ico:'🟢'}};
 let dolFilter={search:'',statut:'tous'};
+let _dolData=[];
 
 function renderDolTable(){
   const tbody=document.getElementById('dolTableBody');
@@ -734,7 +736,8 @@ function renderDolTable(){
     fbDb.ref('doleances').once('value').then(snap=>{
       const v=snap.val();
       const l=v?Object.values(v).filter(d=>d&&(d.ref||d.titre||d.citoyen||d.cat)).sort((a,b)=>(b.id||0)-(a.id||0)):[];
-      localStorage.setItem('doleances',JSON.stringify(l));
+      saveDoleances(l);
+      _dolData=l;
       _afficherDolTable(l);
     }).catch(e=>{
       if(tbody) tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:red">❌ Erreur Firebase : '+e.message+'</td></tr>';
@@ -744,8 +747,7 @@ function renderDolTable(){
   }
 }
 function _afficherDolTable(data){
-  // Lire depuis l\'argument ou localStorage
-  const all=data||getDoleances().filter(d=>d&&(d.ref||d.titre||d.citoyen||d.cat));
+  const all=data||_dolData;
   if(!all.length){
     const el=document.getElementById('dolTableBody');
     if(el) el.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--gray)">Aucune doléance reçue pour l\'instant</td></tr>';
@@ -789,9 +791,9 @@ function filterDol(v){dolFilter.search=v;_afficherDolTable();}
 function filterDolStatus(v){dolFilter.statut=v;_afficherDolTable();}
 function updateDolStatus(id,val){
   const d=getDoleances();const s=d.find(x=>x.id===id);
-  if(s){s.statut=val;localStorage.setItem('doleances',JSON.stringify(d));}
+  if(s){s.statut=val;saveDoleances(d);}
   if(fbDb) fbDb.ref('doleances/'+id+'/statut').set(val).catch(()=>{});
-  updateNavBadges();renderAccueilAdmin();showToast(`✅ Doléance mise à jour : ${val.replace('_',' ')}`);
+  updateNavBadges();showToast(`✅ Doléance mise à jour : ${val.replace('_',' ')}`);
 }
 function voirDoleance(id){
   const d=getDoleances().find(x=>x.id===id);
@@ -800,7 +802,7 @@ function voirDoleance(id){
 }
 function updateSigStatus(id,val){
   const d=getSigs();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveSigs(d);}
-  updateNavBadges();renderAccueilAdmin();showToast(`✅ Statut mis à jour : ${val.replace('_',' ')}`);
+  updateNavBadges();showToast(`✅ Statut mis à jour : ${val.replace('_',' ')}`);
 }
 function quickUpdateSig(id){showSection('signalements',document.querySelectorAll('.nav-item')[1]);}
 
@@ -1122,12 +1124,13 @@ try{
     fbDb.ref('doleances').on('value',snap=>{
       const v=snap.val();
       if(v){
-        const l=Object.values(v).sort((a,b)=>b.id-a.id);
-        const avant=JSON.parse(localStorage.getItem('doleances')||'[]').length;
-        localStorage.setItem('doleances',JSON.stringify(l));
+        const l=Object.values(v).filter(d=>d&&(d.ref||d.titre||d.citoyen||d.cat)).sort((a,b)=>(b.id||0)-(a.id||0));
+        const avant=getDoleances().length;
+        saveDoleances(l);
+        _dolData=l;
         updateNavBadges();
         if(l.length>avant) showToast(`📝 Nouvelle doléance reçue d'un citoyen !`);
-        if(document.getElementById('doleances_admin')?.classList.contains('active')){const lf=Object.values(v).filter(d=>d&&(d.ref||d.titre||d.citoyen||d.cat)).sort((a,b)=>(b.id||0)-(a.id||0));_afficherDolTable(lf);}
+        if(document.getElementById('doleances_admin')?.classList.contains('active')) _afficherDolTable(l);
         if(document.getElementById('accueil_admin')?.classList.contains('active')) renderAccueilAdmin();
       }
     });

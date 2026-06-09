@@ -1051,14 +1051,13 @@ function submitDol(){
     statut:'nouveau',date:today,
     lat:formData.gps?formData.gps.lat:12.365+(Math.random()-.5)*.01,
     lng:formData.gps?formData.gps.lng:15.044+(Math.random()-.5)*.01,
-    photo:formData.photos[0]||null,
+    photo:null,
     citoyen:user?.nom||'Citoyen',
     timeline:[{date:today,label:'Doléance soumise',note:'Enregistrée — numéro attribué : '+ref,type:'submit'}]
   };
   dols.unshift(newDol);
   localStorage.setItem('doleances',JSON.stringify(dols));
-  // Stocker l'ID pour envoi manuel
-  localStorage.setItem('lastDolId', String(newDol.id));
+  _pendingDol=newDol;
   document.getElementById('refNum').textContent=ref;
   document.getElementById('fbDolStatus').textContent='';
   document.getElementById('btnEnvoyerDol').textContent='📤 Envoyer à la mairie maintenant';
@@ -1075,7 +1074,7 @@ function _envoyerDolFirebase(dol){
     document.getElementById('fbDolStatus').textContent='⚠️ Non connecté — appuyez sur le bouton pour réessayer';
     return;
   }
-  const dolFb={...dol, photo:null};
+  const dolFb={id:dol.id,ref:dol.ref,cat:dol.cat,titre:dol.titre,desc:dol.desc,quartier:dol.quartier,urgence:dol.urgence,personnes:dol.personnes,statut:dol.statut,date:dol.date,citoyen:dol.citoyen,lat:dol.lat,lng:dol.lng,photo:null};
   const btn=document.getElementById('btnEnvoyerDol');
   if(btn) btn.textContent='⏳ Envoi en cours...';
   fbDb.ref('doleances/'+dol.id).set(dolFb)
@@ -1093,15 +1092,12 @@ function _envoyerDolFirebase(dol){
 }
 
 function envoyerDoleanceAdmin(){
-  const id=localStorage.getItem('lastDolId');
-  if(!id){showToast('⚠️ Aucune doléance à envoyer');return;}
-  const dols=getDols();
-  const dol=dols.find(d=>String(d.id)===id);
-  if(!dol){showToast('⚠️ Doléance introuvable');return;}
+  const dol=_pendingDol;
+  if(!dol){showToast('⚠️ Aucune doléance à envoyer');return;}
   if(!fbDb){
     showToast('⚠️ Firebase non connecté — vérifiez votre connexion');
     initFirebase();
-    setTimeout(()=>{if(fbDb) _envoyerDolFirebase(dol);},2000);
+    fbDb&&fbDb.ref('.info/connected').once('value',snap=>{if(snap.val()===true)_envoyerDolFirebase(dol);});
     return;
   }
   _envoyerDolFirebase(dol);
@@ -1610,6 +1606,7 @@ const FB_CONFIG={
   appId:"1:319201016941:web:643170e86296ffe8491364"
 };
 let fbDb=null;
+let _pendingDol=null;
 let _fbAlerteCount=0;
 
 function setFbIndicator(online){
