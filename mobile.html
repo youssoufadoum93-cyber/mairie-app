@@ -723,12 +723,12 @@
       <!-- STEP 3: PHOTO + GPS -->
       <div class="form-step" id="step3">
         <div class="step-title">Photo & Localisation</div>
-        <div class="step-sub">Ajoutez une photo et votre position pour un traitement plus rapide</div>
-        <label class="form-label">Photo(s) du problème (optionnel)</label>
+        <div class="step-sub">Ajoutez une photo ou vidéo et votre position pour un traitement plus rapide</div>
+        <label class="form-label">Photo(s) / vidéo du problème (optionnel)</label>
         <div class="photo-zone">
           <div class="pz-ico">📷</div>
-          <div class="pz-txt">Appuyez pour prendre une photo ou choisir dans la galerie</div>
-          <input type="file" accept="image/*" multiple onchange="handleFormPhotos(this)"/>
+          <div class="pz-txt">Appuyez pour prendre une photo, filmer ou choisir dans la galerie</div>
+          <input type="file" accept="image/*,video/*" multiple onchange="handleFormPhotos(this)"/>
         </div>
         <div class="photo-previews" id="formPhotoPrev"></div>
         <label class="form-label" style="margin-top:14px">Localisation GPS</label>
@@ -953,9 +953,25 @@ function handleFormPhotos(input){
   const files=Array.from(input.files);formData.photos=[];
   const prev=document.getElementById('formPhotoPrev');prev.innerHTML='';
   files.slice(0,4).forEach(f=>{
-    const r=new FileReader();
-    r.onload=e=>{formData.photos.push(e.target.result);const img=document.createElement('img');img.src=e.target.result;prev.appendChild(img);};
-    r.readAsDataURL(f);
+    if(f.type.startsWith('video/')){
+      const url=URL.createObjectURL(f);
+      const vid=document.createElement('video');
+      vid.src=url;vid.controls=true;vid.muted=true;vid.playsInline=true;
+      vid.style.cssText='width:100%;border-radius:10px;margin-top:6px;max-height:220px;display:block;';
+      prev.appendChild(vid);
+      // Extraire la première frame comme thumbnail pour Firebase
+      vid.addEventListener('loadeddata',()=>{vid.currentTime=0.1;},{once:true});
+      vid.addEventListener('seeked',()=>{
+        const c=document.createElement('canvas');
+        c.width=vid.videoWidth||320;c.height=vid.videoHeight||240;
+        c.getContext('2d').drawImage(vid,0,0);
+        formData.photos.push(c.toDataURL('image/jpeg',0.7));
+      },{once:true});
+    } else {
+      const r=new FileReader();
+      r.onload=e=>{formData.photos.push(e.target.result);const img=document.createElement('img');img.src=e.target.result;prev.appendChild(img);};
+      r.readAsDataURL(f);
+    }
   });
 }
 
@@ -1029,7 +1045,7 @@ function buildConfirm(){
     <div class="confirm-row"><span class="cl">Quartier</span><span class="cv">📍 ${q}</span></div>
     <div class="confirm-row"><span class="cl">Urgence</span><span class="cv">${urg.ico} ${urg.label}</span></div>
     <div class="confirm-row"><span class="cl">Personnes affectées</span><span class="cv">${p}</span></div>
-    <div class="confirm-row"><span class="cl">Photo</span><span class="cv">${formData.photos.length>0?'📷 '+formData.photos.length+' photo(s)':'Aucune'}</span></div>
+    <div class="confirm-row"><span class="cl">Média</span><span class="cv">${formData.photos.length>0?'📷 '+formData.photos.length+' photo/vidéo':'Aucun'}</span></div>
     <div class="confirm-row"><span class="cl">GPS</span><span class="cv">${formData.gps?'✓ Localisé':'Non localisé'}</span></div>`;
 }
 
