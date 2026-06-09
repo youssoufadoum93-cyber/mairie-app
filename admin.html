@@ -352,7 +352,8 @@
     <!-- =========== DEMANDES =========== -->
     <div id="demandes" class="section">
       <div class="section-head">
-        <div><h2>📋 Demandes Administratives</h2><p>Traiter les demandes de documents des citoyens</p></div>
+        <div><h2>📋 Demandes Administratives</h2><p>Demandes de documents des citoyens — synchronisées en temps réel</p></div>
+        <button class="tb-btn primary" onclick="chargerDemandesFirebase()">🔄 Actualiser</button>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="demKpiRow"></div>
@@ -730,6 +731,42 @@ function renderDemTable(){
 }
 function filterDem(v){demFilter.search=v;renderDemTable();}
 function filterDemStatus(v){demFilter.statut=v;renderDemTable();}
+
+function chargerDemandesFirebase(){
+  if(!fbDb){showToast('⚠️ Firebase non connecté');renderDemTable();return;}
+  showToast('🔄 Chargement des demandes...');
+  fbDb.ref('demandes').once('value').then(snap=>{
+    const v=snap.val();
+    if(v){
+      const locales=getDems();
+      const nouvelles=Object.values(v).map(n=>{
+        const ex=locales.find(e=>String(e.id)===String(n.id));
+        return{
+          id:n.id,
+          ref:n.ref||'DEM-'+n.id,
+          citoyen:n.citoyen||'—',
+          tel:n.tel||'',
+          type_doc:n.label||n.type_doc||n.type||'—',
+          date:n.date||'—',
+          statut:ex?ex.statut:(n.statut||'en_attente'),
+          agent:ex?ex.agent:null,
+          commentaire:ex?ex.commentaire:(n.commentaire||''),
+          donnees:n.donnees||{},
+          retrait:n.retrait||'guichet'
+        };
+      }).sort((a,b)=>b.id-a.id);
+      // Garder aussi les demandes locales demo
+      const localesSansDoublon=locales.filter(l=>!nouvelles.find(n=>String(n.id)===String(l.id)));
+      const toutes=[...nouvelles,...localesSansDoublon];
+      localStorage.setItem('demandes_admin',JSON.stringify(toutes));
+      renderDemTable();
+      showToast('✅ '+nouvelles.length+' demande(s) chargée(s) depuis Firebase');
+    } else {
+      showToast('ℹ️ Aucune demande dans Firebase — affichage des données locales');
+      renderDemTable();
+    }
+  }).catch(e=>{showToast('❌ Erreur : '+e.message);renderDemTable();});
+}
 function updateDemStatus(id,val){
   const d=getDems();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveDems(d);}
   updateNavBadges();showToast(`✅ Statut demande mis à jour`);
@@ -927,7 +964,7 @@ function showSection(id,navEl){
   document.getElementById('breadcrumbText').textContent=SECTION_TITLES[id]||id;
   if(window.innerWidth<=700) document.getElementById('sidebar').classList.remove('open');
   if(id==='signalements') renderSigTable();
-  else if(id==='demandes') renderDemTable();
+  else if(id==='demandes') chargerDemandesFirebase();
   else if(id==='revenus') renderRevenus();
   else if(id==='alertes_admin') renderAlertesAdmin();
   else if(id==='agents') renderAgents();
