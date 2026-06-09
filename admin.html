@@ -804,17 +804,34 @@ function publierAlerte(){
   if(!titre){showToast('⚠️ Veuillez saisir un titre');return;}
   if(!msg){showToast('⚠️ Veuillez saisir un message');return;}
   if(!quartiers.length){showToast('⚠️ Sélectionnez au moins un quartier');return;}
+  const nouvelleAlerte={
+    id:Date.now(),type,titre,msg,quartiers,
+    date:new Date().toISOString().slice(0,10),
+    heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    lien:'',auteur:'Admin',lu:false
+  };
+  // Sauvegarder en local
   const alertes=getAlertes();
-  alertes.unshift({id:Date.now(),type,titre,msg,quartiers,date:new Date().toISOString().slice(0,10),heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),lien:'',auteur:'Admin'});
-  saveAlertes(alertes);
+  alertes.unshift(nouvelleAlerte);
+  localStorage.setItem('alertes',JSON.stringify(alertes));
+  // Écriture DIRECTE dans Firebase
+  if(fbDb){
+    fbDb.ref('alertes/'+nouvelleAlerte.id).set(nouvelleAlerte)
+      .then(()=>showToast('✅ Alerte publiée et envoyée en temps réel !'))
+      .catch(e=>showToast('⚠️ Erreur Firebase : '+e.message));
+  } else {
+    showToast('✅ Alerte publiée (Firebase non connecté)');
+  }
   document.getElementById('newAlerteTitre').value='';
   document.getElementById('newAlerteMsg').value='';
   document.querySelectorAll('.qc-item input').forEach(c=>c.checked=false);
   renderAlertesAdmin();
-  showToast('✅ Alerte publiée et envoyée aux citoyens !');
 }
 function deleteAlerte(id){
-  const d=getAlertes().filter(a=>a.id!==id);saveAlertes(d);renderAlertesAdmin();showToast('🗑️ Alerte supprimée');
+  const d=getAlertes().filter(a=>a.id!==id);
+  localStorage.setItem('alertes',JSON.stringify(d));
+  if(fbDb) fbDb.ref('alertes/'+id).remove();
+  renderAlertesAdmin();showToast('🗑️ Alerte supprimée');
 }
 
 // ============================= AGENTS =============================

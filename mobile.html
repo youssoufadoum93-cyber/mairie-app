@@ -929,7 +929,12 @@ function submitDol(){
     citoyen:user?.nom||'Citoyen',
     timeline:[{date:today,label:'Doléance soumise',note:'Enregistrée — numéro attribué : '+ref,type:'submit'}]
   };
-  dols.unshift(newDol);saveDols(dols);
+  dols.unshift(newDol);
+  localStorage.setItem('doleances',JSON.stringify(dols));
+  // Écriture DIRECTE dans Firebase
+  if(fbDb){
+    fbDb.ref('doleances/'+newDol.id).set(newDol).catch(e=>console.warn('Firebase dol:',e));
+  }
   document.getElementById('refNum').textContent=ref;
   closeForm();
   document.getElementById('successOverlay').classList.add('show');
