@@ -980,6 +980,32 @@ try{
         if(l.length>avant) showToast(`📝 Nouvelle doléance reçue d'un citoyen !`);
       }
     });
+    // Écouter demandes de documents citoyens
+    fbDb.ref('demandes').on('value',snap=>{
+      const v=snap.val();
+      if(v){
+        const nouvelles=Object.values(v).sort((a,b)=>b.id-a.id);
+        // Fusionner avec les demandes existantes (garder les agents assignés)
+        const existantes=getDems();
+        const fusionnees=nouvelles.map(n=>{
+          const ex=existantes.find(e=>e.id===n.id);
+          return {
+            id:n.id, ref:n.ref||('DEM-'+n.id),
+            citoyen:n.citoyen, tel:n.tel||'',
+            type_doc:n.label||n.type,
+            date:n.date, statut:ex?ex.statut:n.statut||'en_attente',
+            agent:ex?ex.agent:null,
+            commentaire:ex?ex.commentaire:'',
+            donnees:n.donnees||{}, retrait:n.retrait||'guichet'
+          };
+        });
+        const avant=existantes.length;
+        localStorage.setItem('demandes_admin',JSON.stringify(fusionnees));
+        updateNavBadges();
+        if(fusionnees.length>avant) showToast('📄 Nouvelle demande de document reçue !');
+        if(document.getElementById('demandes').classList.contains('active')) renderDemTable();
+      }
+    });
     // Écouter alertes
     fbDb.ref('alertes').on('value',snap=>{
       const v=snap.val();
@@ -1012,7 +1038,19 @@ saveAlertes=function(d){__origSaveAlertes(d);fbSync('alertes',d);};
 const __origSaveSigs=saveSigs;
 saveSigs=function(d){__origSaveSigs(d);fbSync('signalements',d);};
 const __origSaveDems=saveDems;
-saveDems=function(d){__origSaveDems(d);fbSync('demandes',d);};;
+saveDems=function(d){
+  __origSaveDems(d);
+  // Synchroniser les statuts mis à jour vers Firebase
+  if(fbDb){
+    d.forEach(dem=>{
+      if(dem.id){
+        fbDb.ref('demandes/'+dem.id+'/statut').set(dem.statut).catch(()=>{});
+        if(dem.commentaire) fbDb.ref('demandes/'+dem.id+'/commentaire').set(dem.commentaire).catch(()=>{});
+        if(dem.agent) fbDb.ref('demandes/'+dem.id+'/agent').set(dem.agent).catch(()=>{});
+      }
+    });
+  }
+};
 </script>
 </body>
 </html>

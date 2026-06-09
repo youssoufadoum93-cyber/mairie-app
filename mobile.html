@@ -1498,6 +1498,32 @@ function initFirebase(){
       }
     });
 
+    // Écouter mises à jour des demandes de documents (statut mis à jour par l'admin)
+    fbDb.ref('demandes').on('value',snap=>{
+      const v=snap.val();
+      if(v){
+        const dems=getDemandes();
+        let changed=false;
+        Object.values(v).forEach(fbDem=>{
+          const local=dems.find(d=>d.id===fbDem.id);
+          if(local){
+            if(fbDem.statut && local.statut!==fbDem.statut){
+              local.statut=fbDem.statut;
+              changed=true;
+              if(fbDem.statut==='prêt') showToast('📄 '+local.label+' — Prêt à retirer au guichet !');
+              else if(fbDem.statut==='en_cours') showToast('🟡 Votre demande est en cours de traitement');
+              else if(fbDem.statut==='livré') showToast('✅ Document livré — Merci !');
+            }
+            if(fbDem.commentaire!==undefined) local.commentaire=fbDem.commentaire;
+          }
+        });
+        if(changed){
+          saveDemandes(dems);
+          if(document.getElementById('screen-demarches')?.classList.contains('active')) renderDemandeList();
+        }
+      }
+    });
+
   }catch(e){console.warn('Firebase non disponible:',e);setFbIndicator(false);}
 }
 
