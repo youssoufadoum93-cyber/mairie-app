@@ -30,8 +30,10 @@
   <div id="step3">⏳ En attente...</div>
 </div>
 <div class="box">
-  <button onclick="testEcriture()">📤 Tester l'écriture (publier alerte test)</button>
-  <button onclick="testLecture()" style="margin-top:8px;background:#16a34a">📥 Tester la lecture (voir alertes)</button>
+  <button onclick="testLecture()" style="background:#16a34a">📥 Voir alertes dans Firebase</button>
+  <button onclick="testDemandes()" style="margin-top:8px;background:#1a56db">📄 Voir demandes dans Firebase</button>
+  <button onclick="testEcrireDemande()" style="margin-top:8px;background:#7c3aed">📝 Écrire une demande test</button>
+  <button onclick="testEcriture()" style="margin-top:8px;background:#ea580c">📢 Écrire une alerte test</button>
 </div>
 <div class="box">
   <div style="font-weight:700;margin-bottom:8px">📋 Journal :</div>
@@ -94,24 +96,54 @@ if(db){
 
 function testEcriture(){
   if(!db){addLog('ERREUR : Firebase non initialisé');return;}
-  const alerte={id:Date.now(),type:'info',titre:'Alerte test — '+new Date().toLocaleTimeString('fr-FR'),msg:'Ceci est une alerte de test pour vérifier la synchronisation Firebase.',quartiers:['tous'],date:new Date().toISOString().slice(0,10),heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),lu:false};
-  addLog('Tentative écriture...');
+  const alerte={id:Date.now(),type:'info',titre:'Alerte test — '+new Date().toLocaleTimeString('fr-FR'),msg:'Test de synchronisation Firebase.',quartiers:['tous'],date:new Date().toISOString().slice(0,10),heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),lu:false};
+  addLog('Tentative écriture alerte...');
   db.ref('alertes/'+alerte.id).set(alerte)
-    .then(()=>addLog('✅ ÉCRITURE RÉUSSIE ! L\'alerte est dans Firebase.'))
-    .catch(e=>addLog('❌ ERREUR ÉCRITURE : '+e.message+'\n→ Allez dans Firebase → Realtime Database → Règles\n→ Mettez ".read":true et ".write":true'));
+    .then(()=>addLog('✅ ÉCRITURE ALERTE RÉUSSIE !'))
+    .catch(e=>addLog('❌ ERREUR : '+e.message));
 }
 
 function testLecture(){
   if(!db){addLog('ERREUR : Firebase non initialisé');return;}
-  addLog('Lecture manuelle...');
+  addLog('Lecture manuelle alertes...');
   db.ref('alertes').once('value')
     .then(snap=>{
       const v=snap.val();
       const nb=v?Object.keys(v).length:0;
-      addLog(`✅ LECTURE OK : ${nb} alerte(s) trouvée(s)`);
+      addLog('✅ ALERTES : '+nb+' trouvée(s)');
       if(v) Object.values(v).forEach(a=>addLog('  → ['+a.type+'] '+a.titre));
     })
-    .catch(e=>addLog('❌ ERREUR LECTURE : '+e.message));
+    .catch(e=>addLog('❌ ERREUR : '+e.message));
+}
+
+function testDemandes(){
+  if(!db){addLog('ERREUR : Firebase non initialisé');return;}
+  addLog('Lecture des demandes dans Firebase...');
+  db.ref('demandes').once('value')
+    .then(snap=>{
+      const v=snap.val();
+      const nb=v?Object.keys(v).length:0;
+      addLog('📄 DEMANDES : '+nb+' trouvée(s)');
+      if(v) Object.values(v).forEach(d=>addLog('  → ['+d.type+'] '+d.label+' — '+d.citoyen+' ('+d.statut+')'));
+      else addLog('⚠️ Aucune demande — le mobile na pas écrit dans Firebase');
+    })
+    .catch(e=>addLog('❌ ERREUR lecture demandes : '+e.message));
+}
+
+function testEcrireDemande(){
+  if(!db){addLog('ERREUR : Firebase non initialisé');return;}
+  const dem={
+    id:Date.now(),ref:'DEM-TEST-001',
+    type:'naissance',label:'Acte de naissance',ico:'📄',
+    citoyen:'Test Citoyen',tel:'600000000',
+    donnees:{nom:'Test',prenom:'Citoyen',date_naissance:'1990-01-01'},
+    retrait:'guichet',date:new Date().toISOString().slice(0,10),
+    statut:'en_attente',commentaire:''
+  };
+  addLog('Écriture demande test dans Firebase...');
+  db.ref('demandes/'+dem.id).set(dem)
+    .then(()=>addLog('✅ DEMANDE ÉCRITE ! Allez dans admin → Demandes → Actualiser'))
+    .catch(e=>addLog('❌ ERREUR : '+e.message));
 }
 </script>
 </body>
