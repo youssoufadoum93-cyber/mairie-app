@@ -650,10 +650,13 @@
       <div style="font-size:.72rem;color:var(--blue);font-weight:700;text-transform:uppercase;margin-bottom:4px">Numéro de référence</div>
       <div id="demRefNum" style="font-size:1.3rem;font-weight:800;color:var(--blue);letter-spacing:.04em">DEM-2026-0001</div>
     </div>
-    <div style="background:#fef3c7;border-radius:10px;padding:12px;margin-bottom:24px;font-size:.82rem;color:#92400e;width:100%;text-align:left">
+    <div style="background:#fef3c7;border-radius:10px;padding:12px;margin-bottom:16px;font-size:.82rem;color:#92400e;width:100%;text-align:left">
       📍 <strong>Retrait au guichet :</strong> Mairie centrale, Bureau État Civil — Lundi au Vendredi 8h–16h
     </div>
-    <button class="btn-next" onclick="apresDemandeDoc()">📋 Suivre ma demande</button>
+    <button class="btn-next" onclick="envoyerDemandeAdmin()" id="btnEnvoyerAdmin" style="background:var(--green)">
+      📤 Envoyer à la mairie maintenant
+    </button>
+    <button class="btn-next" style="margin-top:10px" onclick="apresDemandeDoc()">📋 Suivre ma demande</button>
     <button style="width:100%;padding:13px;background:none;color:var(--blue);border:2px solid var(--blue);border-radius:14px;font-size:.92rem;font-weight:700;cursor:pointer;margin-top:10px" onclick="document.getElementById('demSuccessOverlay').style.display='none';showScreen('home')">🏠 Retour à l'accueil</button>
   </div>
 
@@ -1381,6 +1384,48 @@ function soumettreDemandeDoc(){
   document.getElementById('demRefNum').textContent=ref;
   fermerFormDem();
   document.getElementById('demSuccessOverlay').style.display='flex';
+}
+
+function envoyerDemandeAdmin(){
+  const btn=document.getElementById('btnEnvoyerAdmin');
+  btn.textContent='⏳ Envoi en cours...';
+  btn.disabled=true;
+
+  const dems=getDemandes();
+  if(!dems.length){btn.textContent='⚠️ Aucune demande trouvée';return;}
+
+  // Vérifier Firebase disponible
+  if(!fbDb){
+    // Réessayer d'initialiser Firebase
+    initFirebase();
+    setTimeout(()=>{
+      if(!fbDb){
+        btn.textContent='❌ Connexion impossible — réessayez';
+        btn.disabled=false;
+        return;
+      }
+      _pousserDemandes(dems,btn);
+    },2000);
+    return;
+  }
+  _pousserDemandes(dems,btn);
+}
+
+function _pousserDemandes(dems,btn){
+  const promises=dems.map(d=>
+    fbDb.ref('demandes/'+d.id).set(d)
+  );
+  Promise.all(promises)
+    .then(()=>{
+      btn.textContent='✅ Envoyé à la mairie !';
+      btn.style.background='var(--green)';
+      showToast('✅ Demande envoyée ! L\'admin peut la voir maintenant.');
+    })
+    .catch(e=>{
+      btn.textContent='❌ Erreur — réessayez';
+      btn.disabled=false;
+      showToast('❌ Erreur : '+e.message);
+    });
 }
 
 function apresDemandeDoc(){
