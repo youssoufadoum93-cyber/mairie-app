@@ -30,7 +30,9 @@
   <div id="step3">⏳ En attente...</div>
 </div>
 <div class="box">
-  <button onclick="syncDemandesLocales()" style="background:#16a34a;font-size:1rem">🔄 SYNCHRONISER MES DEMANDES VERS FIREBASE</button>
+  <button onclick="syncDoleancesLocales()" style="background:#7c3aed;font-size:1rem">📝 SYNCHRONISER MES DOLÉANCES VERS FIREBASE</button>
+  <div style="font-size:.8rem;color:#6b7280;margin-top:8px;text-align:center">Appuyez ici si vos doléances n'apparaissent pas chez l'admin</div>
+  <button onclick="syncDemandesLocales()" style="background:#16a34a;font-size:1rem;margin-top:10px">🔄 SYNCHRONISER MES DEMANDES VERS FIREBASE</button>
   <div style="font-size:.8rem;color:#6b7280;margin-top:8px;text-align:center">Appuyez ici si vos demandes n'apparaissent pas chez l'admin</div>
 </div>
 <div class="box">
@@ -98,6 +100,24 @@ if(db){
     document.getElementById('step3').innerHTML='<span class="err">❌ Étape 3 ERREUR LECTURE : '+err.message+'</span><div class="info">→ Vérifiez les règles Firebase (Realtime Database → Règles)</div>';
     addLog('ERREUR LECTURE : '+err.message);
   });
+}
+
+function syncDoleancesLocales(){
+  if(!db){addLog('ERREUR : Firebase non connecté');return;}
+  const raw=localStorage.getItem('doleances');
+  const dols=raw?JSON.parse(raw):[];
+  if(!dols.length){addLog('⚠️ Aucune doléance dans le stockage local');return;}
+  addLog('📝 '+dols.length+' doléance(s) trouvée(s) — synchronisation...');
+  const promises=dols.map(d=>{
+    const dFb={...d,photo:null};
+    return db.ref('doleances/'+d.id).set(dFb)
+      .then(()=>addLog('  ✅ '+d.titre+' — '+d.citoyen+' ('+d.ref+')'));
+  });
+  Promise.all(promises)
+    .then(()=>{
+      addLog('✅ SYNCHRONISATION TERMINÉE ! Allez sur admin → Doléances citoyens');
+    })
+    .catch(e=>addLog('❌ Erreur : '+e.message));
 }
 
 function syncDemandesLocales(){

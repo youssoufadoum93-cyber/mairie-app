@@ -1055,9 +1055,15 @@ function submitDol(){
   };
   dols.unshift(newDol);
   localStorage.setItem('doleances',JSON.stringify(dols));
-  // Écriture DIRECTE dans Firebase
+  // Écriture dans Firebase (sans photo pour éviter la limite de taille)
   if(fbDb){
-    fbDb.ref('doleances/'+newDol.id).set(newDol).catch(e=>console.warn('Firebase dol:',e));
+    const dolFb={...newDol, photo:null};
+    fbDb.ref('doleances/'+newDol.id).set(dolFb)
+      .then(()=>showToast('📝 Doléance envoyée à la mairie !'))
+      .catch(e=>{
+        console.warn('Firebase dol:',e);
+        showToast('⚠️ Envoi échoué — doléance sauvegardée localement');
+      });
   }
   document.getElementById('refNum').textContent=ref;
   closeForm();
@@ -1680,7 +1686,7 @@ function verifierMisesAJourStatut(v){
 const __origSaveDols=saveDols;
 saveDols=function(d){
   __origSaveDols(d);
-  if(fbDb){const o={};d.forEach(x=>{o[x.id]=x;});fbDb.ref('doleances').set(o).catch(()=>{});}
+  if(fbDb){const o={};d.forEach(x=>{o[x.id]={...x,photo:null};});fbDb.ref('doleances').set(o).catch(()=>{});}
 };
 </script>
 </body>
