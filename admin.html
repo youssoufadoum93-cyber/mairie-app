@@ -1067,10 +1067,24 @@ function openSigModal(id){
     </div>`;
   document.getElementById('modal').classList.add('show');
 }
+let _demModalPieces=[];
 const DEM_CHAMPS_LABELS={nom:'Nom de famille',prenom:'Prénom(s)',date_naissance:'Date de naissance',lieu_naissance:'Lieu de naissance',nom_pere:'Nom du père',nom_mere:'Nom de la mère',nom_epoux:'Nom de l\'époux',prenom_epoux:'Prénom de l\'époux',nom_epouse:'Nom de l\'épouse',prenom_epouse:'Prénom de l\'épouse',date_mariage:'Date du mariage',nom_defunt:'Nom du défunt',prenom_defunt:'Prénom du défunt',date_deces:'Date du décès',adresse:'Adresse complète',motif:'Motif de la demande',type_doc:'Type de document à légaliser',copies:'Nombre de copies'};
 const DEM_RETRAIT={guichet:'Retrait au guichet',domicile:'Livraison à domicile',agent:'Remis par agent'};
+function ouvrirPiece(i){
+  const p=_demModalPieces[i];if(!p)return;
+  if(p.type==='application/pdf'){
+    const bin=atob(p.data.split(',')[1]);
+    const bytes=new Uint8Array(bin.length);
+    for(let j=0;j<bin.length;j++) bytes[j]=bin.charCodeAt(j);
+    const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+    window.open(url,'_blank');
+  } else {
+    const a=document.createElement('a');a.href=p.data;a.download=p.name||'piece';a.click();
+  }
+}
 function openDemModal(id){
   const d=getDems().find(x=>x.id===id);if(!d)return;
+  _demModalPieces=Array.isArray(d.pieces)?d.pieces:[];
   const donnees=d.donnees||{};
   const champsHtml=Object.entries(donnees).filter(([,v])=>v).map(([k,v])=>`<div class="detail-row"><strong>${DEM_CHAMPS_LABELS[k]||k}</strong>${v}</div>`).join('');
   document.getElementById('modalTitle').textContent=`${d.ico||'📋'} Demande ${d.ref||'#'+d.id}`;
@@ -1083,6 +1097,15 @@ function openDemModal(id){
     ${champsHtml
       ?`<div style="border-top:1.5px solid var(--border);margin:12px 0 8px;font-size:.82rem;font-weight:700;color:var(--text)">Informations fournies par le citoyen :</div>${champsHtml}`
       :''}
+    ${_demModalPieces.length
+      ?`<div style="border-top:1.5px solid var(--border);margin:12px 0 8px;font-size:.82rem;font-weight:700;color:var(--text)">Pièces justificatives (${_demModalPieces.length}) :</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+        ${_demModalPieces.map((p,i)=>p.type==='application/pdf'
+          ?`<button class="action-btn blue" style="width:100%;justify-content:flex-start;gap:8px" onclick="ouvrirPiece(${i})">📄 ${p.name||'Pièce '+(i+1)} — Ouvrir le PDF</button>`
+          :`<div><img src="${p.data}" style="width:100%;border-radius:8px;max-height:180px;object-fit:cover;margin-bottom:2px"><div style="font-size:.75rem;color:var(--gray)">${p.name||'Image '+(i+1)}</div></div>`
+        ).join('')}
+        </div>`
+      :`<div style="border-top:1.5px solid var(--border);margin:12px 0 8px;font-size:.82rem;color:var(--gray)">📎 Aucune pièce jointe</div>`}
     <div class="detail-row"><strong>Statut</strong><span class="badge badge-${d.statut==='prêt'||d.statut==='livré'?'résolu':d.statut}">${d.statut}</span></div>
     <div class="detail-row"><strong>Agent</strong>${d.agent||'<span style="color:var(--gray)">Non assigné</span>'}</div>
     ${d.commentaire?`<div class="detail-row"><strong>Commentaire</strong>${d.commentaire}</div>`:''}

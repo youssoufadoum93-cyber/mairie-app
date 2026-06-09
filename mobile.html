@@ -1376,6 +1376,7 @@ const DOCS_TYPES={
   electoral:{label:'Inscription électorale',ico:'🗳️',champs:['nom','prenom','date_naissance','adresse']}
 };
 let currentDocType=null;
+let demPieces=[null,null];
 
 function getDemandes(){
   const r=localStorage.getItem('demandes_doc');
@@ -1393,7 +1394,7 @@ function switchDemTab(el,mode){
 }
 
 function ouvrirFormDem(type){
-  currentDocType=type;
+  currentDocType=type;demPieces=[null,null];
   const doc=DOCS_TYPES[type];
   document.getElementById('demFormTitle').textContent=doc.ico+' '+doc.label;
   const user=getUser();
@@ -1425,6 +1426,18 @@ function ouvrirFormDem(type){
       <label class="form-label">${champs[c].label} *</label>
       <input class="form-input" type="${champs[c].type}" id="dem_${c}" placeholder="${champs[c].placeholder}" value="${c==='copies'?'1':c==='nom'?user?.nom||'':c==='prenom'?user?.prenom||'':''}"/>
     `).join('')}
+    <label class="form-label" style="margin-top:6px">Pièces justificatives (max 2 — PDF ou photo)</label>
+    <div style="display:flex;gap:8px;margin-bottom:4px">
+      <label class="media-btn" style="flex:1;padding:12px 6px">
+        <span style="font-size:1.5rem">📎</span><span style="font-size:.75rem">Pièce 1</span>
+        <input type="file" accept="image/*,.pdf,application/pdf" onchange="handlePiece(this,0)">
+      </label>
+      <label class="media-btn" style="flex:1;padding:12px 6px">
+        <span style="font-size:1.5rem">📎</span><span style="font-size:.75rem">Pièce 2</span>
+        <input type="file" accept="image/*,.pdf,application/pdf" onchange="handlePiece(this,1)">
+      </label>
+    </div>
+    <div id="piecesPrev" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
     <label class="form-label">Mode de retrait</label>
     <select class="form-input form-select" id="dem_retrait">
       <option value="guichet">🏛️ Retrait au guichet (gratuit)</option>
@@ -1438,7 +1451,36 @@ function ouvrirFormDem(type){
 }
 
 function fermerFormDem(){
+  demPieces=[null,null];
   document.getElementById('demFormOverlay').classList.remove('show');
+}
+
+async function handlePiece(input,idx){
+  const f=input.files[0];if(!f)return;
+  const prev=document.getElementById('piecesPrev');
+  const old=prev.querySelector('[data-idx="'+idx+'"]');if(old)prev.removeChild(old);
+  const div=document.createElement('div');div.dataset.idx=idx;
+  if(f.type.startsWith('image/')){
+    const spinner=document.createElement('div');
+    spinner.style.cssText='width:72px;height:72px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px solid var(--border);';
+    spinner.textContent='⏳';div.appendChild(spinner);prev.appendChild(div);
+    const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(f);});
+    const thumb=await _compressPhoto(dataUrl,400,0.7);
+    if(thumb){
+      demPieces[idx]={name:f.name,type:f.type,data:thumb};
+      const img=document.createElement('img');img.src=thumb;
+      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:10px;border:2px solid var(--border);';
+      div.replaceChild(img,spinner);
+    } else {spinner.textContent='❌';}
+  } else {
+    if(f.size>600*1024){showToast('⚠️ Fichier trop lourd (max 600 KB)');return;}
+    const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(f);});
+    demPieces[idx]={name:f.name,type:'application/pdf',data:dataUrl};
+    div.style.cssText='display:flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--border);border-radius:10px;padding:8px 10px;font-size:.78rem;max-width:160px;';
+    div.innerHTML='📄 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</span>';
+    prev.appendChild(div);
+  }
+  input.value='';
 }
 
 function soumettreDemandeDoc(){
@@ -1464,13 +1506,17 @@ function soumettreDemandeDoc(){
     citoyen:user?.nom||'Citoyen',
     date:new Date().toISOString().slice(0,10),
     statut:'en_attente',
-    commentaire:''
+    commentaire:'',
+    pieces:demPieces.filter(p=>p)
   };
   dems.unshift(nouvDem);
   saveDemandes(dems);
   // Firebase sync
   if(fbDb){
-    fbDb.ref('demandes/'+nouvDem.id).set(nouvDem).catch(()=>{});
+    const updates={};
+    updates['demandes/'+nouvDem.id]={...nouvDem,pieces:[]};
+    nouvDem.pieces.forEach((p,i)=>{updates['demandes/'+nouvDem.id+'/pieces/'+i]=p;});
+    fbDb.ref().update(updates).catch(()=>{});
   }
   document.getElementById('demRefNum').textContent=ref;
   fermerFormDem();
