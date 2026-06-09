@@ -728,6 +728,21 @@ const DOL_URG={haute:{label:'Urgent',ico:'🔴'},normale:{label:'Normal',ico:'�
 let dolFilter={search:'',statut:'tous'};
 
 function renderDolTable(){
+  // Toujours lire depuis Firebase en priorité
+  if(fbDb){
+    fbDb.ref('doleances').once('value').then(snap=>{
+      const v=snap.val();
+      if(v){
+        const l=Object.values(v).sort((a,b)=>b.id-a.id);
+        localStorage.setItem('doleances',JSON.stringify(l));
+      }
+      _afficherDolTable();
+    }).catch(()=>_afficherDolTable());
+  } else {
+    _afficherDolTable();
+  }
+}
+function _afficherDolTable(){
   const all=getDoleances();
   if(!all.length){
     const el=document.getElementById('dolTableBody');
@@ -768,8 +783,8 @@ function renderDolTable(){
       <td><button class="action-btn blue" onclick="voirDoleance(${d.id})">👁 Voir</button></td>
     </tr>`).join('');
 }
-function filterDol(v){dolFilter.search=v;renderDolTable();}
-function filterDolStatus(v){dolFilter.statut=v;renderDolTable();}
+function filterDol(v){dolFilter.search=v;_afficherDolTable();}
+function filterDolStatus(v){dolFilter.statut=v;_afficherDolTable();}
 function updateDolStatus(id,val){
   const d=getDoleances();const s=d.find(x=>x.id===id);
   if(s){s.statut=val;localStorage.setItem('doleances',JSON.stringify(d));}
