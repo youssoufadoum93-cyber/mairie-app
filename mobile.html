@@ -559,6 +559,9 @@
 
       <!-- MES DEMANDES -->
       <div id="dem-suivi" style="display:none">
+        <button onclick="actualiserStatutsDemandes()" style="width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:700;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">
+          🔄 Actualiser les statuts
+        </button>
         <div id="demListContainer"></div>
       </div>
     </div>
@@ -1409,6 +1412,45 @@ function renderDemandeList(){
       </div>
     </div>
   `).join('');
+}
+
+function actualiserStatutsDemandes(){
+  if(!fbDb){
+    showToast('⚠️ Firebase non connecté — réessayez dans un moment');
+    initFirebase();
+    return;
+  }
+  showToast('🔄 Vérification des mises à jour...');
+  fbDb.ref('demandes').once('value').then(snap=>{
+    const v=snap.val();
+    if(!v){showToast('ℹ️ Aucune donnée Firebase');return;}
+    const dems=getDemandes();
+    let nbChanges=0;
+    Object.values(v).forEach(fbDem=>{
+      const local=dems.find(d=>String(d.id)===String(fbDem.id));
+      if(local && fbDem.statut && local.statut!==fbDem.statut){
+        const ancienStatut=local.statut;
+        local.statut=fbDem.statut;
+        if(fbDem.commentaire!==undefined) local.commentaire=fbDem.commentaire;
+        nbChanges++;
+        // Notification selon le nouveau statut
+        if(fbDem.statut==='prêt'){
+          showToast('🎉 '+local.label+' est prêt à retirer au guichet !');
+        } else if(fbDem.statut==='en_cours'){
+          showToast('🟡 Votre demande '+local.label+' est en cours de traitement');
+        } else if(fbDem.statut==='livré'){
+          showToast('✅ '+local.label+' a été livré !');
+        }
+      }
+    });
+    if(nbChanges>0){
+      saveDemandes(dems);
+      renderDemandeList();
+      showToast('✅ '+nbChanges+' statut(s) mis à jour !');
+    } else {
+      showToast('✓ Tout est à jour');
+    }
+  }).catch(e=>showToast('❌ Erreur : '+e.message));
 }
 
 function ouvrirDetailDemande(id){

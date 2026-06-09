@@ -1077,14 +1077,18 @@ saveSigs=function(d){__origSaveSigs(d);fbSync('signalements',d);};
 const __origSaveDems=saveDems;
 saveDems=function(d){
   __origSaveDems(d);
-  // Synchroniser les statuts mis à jour vers Firebase
+  // Écrire chaque mise à jour vers Firebase
   if(fbDb){
     d.forEach(dem=>{
-      if(dem.id){
-        fbDb.ref('demandes/'+dem.id+'/statut').set(dem.statut).catch(()=>{});
-        if(dem.commentaire) fbDb.ref('demandes/'+dem.id+'/commentaire').set(dem.commentaire).catch(()=>{});
-        if(dem.agent) fbDb.ref('demandes/'+dem.id+'/agent').set(dem.agent).catch(()=>{});
-      }
+      if(!dem.id) return;
+      // Mise à jour complète de chaque champ modifiable
+      const update={
+        statut: dem.statut||'en_attente',
+        commentaire: dem.commentaire||'',
+        agent: dem.agent||null
+      };
+      fbDb.ref('demandes/'+dem.id).update(update)
+        .catch(e=>console.warn('Firebase demande update:',e));
     });
   }
 };
