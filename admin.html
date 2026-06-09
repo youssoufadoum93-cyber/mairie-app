@@ -728,23 +728,24 @@ const DOL_URG={haute:{label:'Urgent',ico:'🔴'},normale:{label:'Normal',ico:'�
 let dolFilter={search:'',statut:'tous'};
 
 function renderDolTable(){
-  // Toujours lire depuis Firebase en priorité
+  const tbody=document.getElementById('dolTableBody');
+  if(tbody) tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px">⏳ Chargement depuis Firebase...</td></tr>';
   if(fbDb){
     fbDb.ref('doleances').once('value').then(snap=>{
       const v=snap.val();
-      if(v){
-        const l=Object.values(v).sort((a,b)=>b.id-a.id);
-        localStorage.setItem('doleances',JSON.stringify(l));
-      }
-      _afficherDolTable();
-    }).catch(()=>_afficherDolTable());
+      const l=v?Object.values(v).filter(d=>d&&(d.ref||d.titre||d.citoyen||d.cat)).sort((a,b)=>(b.id||0)-(a.id||0)):[];
+      localStorage.setItem('doleances',JSON.stringify(l));
+      _afficherDolTable(l);
+    }).catch(e=>{
+      if(tbody) tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:red">❌ Erreur Firebase : '+e.message+'</td></tr>';
+    });
   } else {
-    _afficherDolTable();
+    if(tbody) tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:orange">⚠️ Firebase non connecté</td></tr>';
   }
 }
-function _afficherDolTable(){
-  // Filtrer les entrées corrompues (sans ref ni titre ni citoyen)
-  const all=getDoleances().filter(d=>d.ref||d.titre||d.citoyen||d.cat);
+function _afficherDolTable(data){
+  // Lire depuis l\'argument ou localStorage
+  const all=data||getDoleances().filter(d=>d&&(d.ref||d.titre||d.citoyen||d.cat));
   if(!all.length){
     const el=document.getElementById('dolTableBody');
     if(el) el.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--gray)">Aucune doléance reçue pour l\'instant</td></tr>';
@@ -1126,7 +1127,7 @@ try{
         localStorage.setItem('doleances',JSON.stringify(l));
         updateNavBadges();
         if(l.length>avant) showToast(`📝 Nouvelle doléance reçue d'un citoyen !`);
-        if(document.getElementById('doleances_admin')?.classList.contains('active')) renderDolTable();
+        if(document.getElementById('doleances_admin')?.classList.contains('active')){const lf=Object.values(v).filter(d=>d&&(d.ref||d.titre||d.citoyen||d.cat)).sort((a,b)=>(b.id||0)-(a.id||0));_afficherDolTable(lf);}
         if(document.getElementById('accueil_admin')?.classList.contains('active')) renderAccueilAdmin();
       }
     });
