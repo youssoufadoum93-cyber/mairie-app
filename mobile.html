@@ -11,6 +11,8 @@
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.png"/>
   <title>Mairie Numérique</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -789,7 +791,7 @@ function launchApp(u){
   if(u.quartier) document.getElementById('alertQuartier').value=u.quartier;
   renderHome();renderAlertes();renderDolList();updateBadges();
   initMapForm();
-  setTimeout(initFirebase, 500);
+  initFirebase();
 }
 function doLogout(){
   localStorage.removeItem('mairieUser');location.reload();
@@ -1211,7 +1213,5 @@ saveDols=function(d){
   if(fbDb){const o={};d.forEach(x=>{o[x.id]=x;});fbDb.ref('doleances').set(o).catch(()=>{});}
 };
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 </body>
 </html>

@@ -4,6 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tableau de Bord Admin — Mairie Numérique</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -940,8 +942,7 @@ const FB_CONFIG={
   appId:"1:319201016941:web:643170e86296ffe8491364"
 };
 let fbDb=null;
-window.addEventListener('load',()=>{
-  try{
+try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     fbDb=firebase.database();
     // Écouter signalements en temps réel
@@ -965,19 +966,22 @@ window.addEventListener('load',()=>{
       const v=snap.val();
       if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('alertes',JSON.stringify(l));if(document.getElementById('alertes_admin').classList.contains('active'))renderAlertesAdmin();}
     });
-    // Indicateur connexion dans la topbar
-    const fb=document.createElement('span');
-    fb.id='fbStatus';fb.style.cssText='font-size:.72rem;background:#dcfce7;color:#16a34a;padding:3px 8px;border-radius:20px;font-weight:700;';
-    fb.textContent='🟢 En ligne';
-    document.querySelector('.topbar-right').prepend(fb);
+    // Indicateur connexion — affiché après chargement DOM
+    window.addEventListener('load',()=>{
+      const fb=document.createElement('span');
+      fb.id='fbStatus';fb.style.cssText='font-size:.72rem;background:#dcfce7;color:#16a34a;padding:3px 8px;border-radius:20px;font-weight:700;';
+      fb.textContent='🟢 En ligne';
+      document.querySelector('.topbar-right').prepend(fb);
+    });
   }catch(e){
     console.warn('Firebase non disponible:',e);
-    const fb=document.createElement('span');
-    fb.style.cssText='font-size:.72rem;background:#fef2f2;color:#dc2626;padding:3px 8px;border-radius:20px;font-weight:700;';
-    fb.textContent='🔴 Hors ligne';
-    document.querySelector('.topbar-right').prepend(fb);
+    window.addEventListener('load',()=>{
+      const fb=document.createElement('span');
+      fb.style.cssText='font-size:.72rem;background:#fef2f2;color:#dc2626;padding:3px 8px;border-radius:20px;font-weight:700;';
+      fb.textContent='🔴 Hors ligne';
+      document.querySelector('.topbar-right').prepend(fb);
+    });
   }
-});
 function fbSync(path,data){
   if(!fbDb)return;
   const o={};data.forEach(x=>{o[x.id]=x;});
@@ -991,7 +995,5 @@ saveSigs=function(d){__origSaveSigs(d);fbSync('signalements',d);};
 const __origSaveDems=saveDems;
 saveDems=function(d){__origSaveDems(d);fbSync('demandes',d);};;
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 </body>
 </html>
