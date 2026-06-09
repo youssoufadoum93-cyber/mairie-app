@@ -798,7 +798,24 @@ function updateDolStatus(id,val){
 function voirDoleance(id){
   const d=getDoleances().find(x=>x.id===id);
   if(!d) return;
-  alert(`📝 Doléance #${d.ref||d.id}\n\nCatégorie : ${DOL_CATS[d.cat]?.label||d.cat}\nTitre : ${d.titre||'—'}\nDescription : ${d.desc||'—'}\nCitoyen : ${d.citoyen||'—'}\nQuartier : ${d.quartier||'—'}\nUrgence : ${DOL_URG[d.urgence]?.label||d.urgence}\nDate : ${d.date}\nStatut : ${d.statut}`);
+  document.getElementById('modalTitle').textContent=`📝 Doléance ${d.ref||'#'+d.id}`;
+  document.getElementById('modalBody').innerHTML=`
+    ${d.photo?`<img src="${d.photo}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:200px;object-fit:cover" alt="Photo de la doléance">`:''}
+    <div class="detail-row"><strong>Catégorie</strong>${DOL_CATS[d.cat]?.ico||'⚠️'} ${DOL_CATS[d.cat]?.label||d.cat||'—'}</div>
+    <div class="detail-row"><strong>Titre</strong>${d.titre||'—'}</div>
+    <div class="detail-row" style="align-items:flex-start"><strong>Description</strong><span>${d.desc||'—'}</span></div>
+    <div class="detail-row"><strong>Citoyen</strong>${d.citoyen||'—'}</div>
+    <div class="detail-row"><strong>Quartier</strong>📍 ${d.quartier||'—'}</div>
+    <div class="detail-row"><strong>Urgence</strong>${DOL_URG[d.urgence]?.ico||'—'} ${DOL_URG[d.urgence]?.label||d.urgence||'—'}</div>
+    <div class="detail-row"><strong>Date</strong>📅 ${d.date||'—'}</div>
+    <div class="detail-row"><strong>Statut</strong><span class="badge badge-${d.statut}">${d.statut||'—'}</span></div>
+    <div class="modal-status-update">
+      <div style="font-size:.82rem;font-weight:600;margin-bottom:8px">Mettre à jour le statut :</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${['nouveau','en_cours','résolu'].map(st=>`<button class="action-btn ${d.statut===st?'blue':''}" onclick="updateDolStatus(${d.id},'${st}');closeModal()">${st.replace('_',' ')}</button>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('modal').classList.add('show');
 }
 function updateSigStatus(id,val){
   const d=getSigs();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveSigs(d);}

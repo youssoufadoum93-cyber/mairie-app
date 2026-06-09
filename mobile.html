@@ -1051,7 +1051,7 @@ function submitDol(){
     statut:'nouveau',date:today,
     lat:formData.gps?formData.gps.lat:12.365+(Math.random()-.5)*.01,
     lng:formData.gps?formData.gps.lng:15.044+(Math.random()-.5)*.01,
-    photo:null,
+    photo:formData.photos[0]||null,
     citoyen:user?.nom||'Citoyen',
     timeline:[{date:today,label:'Doléance soumise',note:'Enregistrée — numéro attribué : '+ref,type:'submit'}]
   };
@@ -1069,14 +1069,31 @@ function submitDol(){
   _envoyerDolFirebase(newDol);
 }
 
-function _envoyerDolFirebase(dol){
+function _compressPhoto(dataUrl,maxPx,quality){
+  return new Promise(resolve=>{
+    if(!dataUrl){resolve(null);return;}
+    const img=new Image();
+    img.onload=()=>{
+      const s=Math.min(maxPx/img.width,maxPx/img.height,1);
+      const w=Math.round(img.width*s),h=Math.round(img.height*s);
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(c.toDataURL('image/jpeg',quality));
+    };
+    img.onerror=()=>resolve(null);
+    img.src=dataUrl;
+  });
+}
+
+async function _envoyerDolFirebase(dol){
   if(!fbDb){
     document.getElementById('fbDolStatus').textContent='⚠️ Non connecté — appuyez sur le bouton pour réessayer';
     return;
   }
-  const dolFb={id:dol.id,ref:dol.ref,cat:dol.cat,titre:dol.titre,desc:dol.desc,quartier:dol.quartier,urgence:dol.urgence,personnes:dol.personnes,statut:dol.statut,date:dol.date,citoyen:dol.citoyen,lat:dol.lat,lng:dol.lng,photo:null};
   const btn=document.getElementById('btnEnvoyerDol');
   if(btn) btn.textContent='⏳ Envoi en cours...';
+  const thumb=await _compressPhoto(dol.photo,140,0.55);
+  const dolFb={id:dol.id,ref:dol.ref,cat:dol.cat,titre:dol.titre,desc:dol.desc,quartier:dol.quartier,urgence:dol.urgence,personnes:dol.personnes,statut:dol.statut,date:dol.date,citoyen:dol.citoyen,lat:dol.lat,lng:dol.lng,photo:thumb};
   fbDb.ref('doleances/'+dol.id).set(dolFb)
     .then(()=>{
       if(btn){btn.textContent='✅ Envoyée à la mairie !';btn.disabled=true;btn.style.background='#16a34a';}
