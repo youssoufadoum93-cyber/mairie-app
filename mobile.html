@@ -759,12 +759,14 @@
   <!-- ====== SUCCESS OVERLAY ====== -->
   <div id="successOverlay">
     <div class="success-ico">✅</div>
-    <div class="success-title">Doléance envoyée !</div>
-    <div class="success-sub">Votre doléance a été enregistrée officiellement. La mairie va l'examiner et vous contacter par SMS.</div>
+    <div class="success-title">Doléance enregistrée !</div>
+    <div class="success-sub">Votre doléance a été sauvegardée. Appuyez sur le bouton ci-dessous pour l'envoyer à la mairie.</div>
     <div class="ref-box">
       <div class="ref-label">Numéro de référence</div>
       <div class="ref-num" id="refNum">DOL-2026-0001</div>
     </div>
+    <button class="btn-next" id="btnEnvoyerDol" onclick="envoyerDoleanceAdmin()" style="background:var(--green);width:100%;margin-bottom:10px">📤 Envoyer à la mairie maintenant</button>
+    <div id="fbDolStatus" style="font-size:.8rem;color:var(--text-secondary);margin-bottom:12px"></div>
     <button class="btn-success" onclick="afterSuccess('suivi')">📋 Suivre ma doléance</button>
     <button class="btn-success-outline" onclick="afterSuccess('home')">🏠 Retour à l'accueil</button>
   </div>
@@ -1055,20 +1057,54 @@ function submitDol(){
   };
   dols.unshift(newDol);
   localStorage.setItem('doleances',JSON.stringify(dols));
-  // Écriture dans Firebase (sans photo pour éviter la limite de taille)
-  if(fbDb){
-    const dolFb={...newDol, photo:null};
-    fbDb.ref('doleances/'+newDol.id).set(dolFb)
-      .then(()=>showToast('📝 Doléance envoyée à la mairie !'))
-      .catch(e=>{
-        console.warn('Firebase dol:',e);
-        showToast('⚠️ Envoi échoué — doléance sauvegardée localement');
-      });
-  }
+  // Stocker l'ID pour envoi manuel
+  localStorage.setItem('lastDolId', String(newDol.id));
   document.getElementById('refNum').textContent=ref;
+  document.getElementById('fbDolStatus').textContent='';
+  document.getElementById('btnEnvoyerDol').textContent='📤 Envoyer à la mairie maintenant';
+  document.getElementById('btnEnvoyerDol').disabled=false;
   closeForm();
   document.getElementById('successOverlay').classList.add('show');
   updateBadges();renderHome();renderDolList();
+  // Tentative automatique d'envoi Firebase
+  _envoyerDolFirebase(newDol);
+}
+
+function _envoyerDolFirebase(dol){
+  if(!fbDb){
+    document.getElementById('fbDolStatus').textContent='⚠️ Non connecté — appuyez sur le bouton pour réessayer';
+    return;
+  }
+  const dolFb={...dol, photo:null};
+  const btn=document.getElementById('btnEnvoyerDol');
+  if(btn) btn.textContent='⏳ Envoi en cours...';
+  fbDb.ref('doleances/'+dol.id).set(dolFb)
+    .then(()=>{
+      if(btn){btn.textContent='✅ Envoyée à la mairie !';btn.disabled=true;btn.style.background='#16a34a';}
+      const s=document.getElementById('fbDolStatus');
+      if(s) s.textContent='📡 Reçue par la mairie';
+    })
+    .catch(e=>{
+      console.warn('Firebase dol:',e);
+      if(btn){btn.textContent='📤 Réessayer l\'envoi';btn.disabled=false;}
+      const s=document.getElementById('fbDolStatus');
+      if(s) s.textContent='❌ Erreur : '+e.message;
+    });
+}
+
+function envoyerDoleanceAdmin(){
+  const id=localStorage.getItem('lastDolId');
+  if(!id){showToast('⚠️ Aucune doléance à envoyer');return;}
+  const dols=getDols();
+  const dol=dols.find(d=>String(d.id)===id);
+  if(!dol){showToast('⚠️ Doléance introuvable');return;}
+  if(!fbDb){
+    showToast('⚠️ Firebase non connecté — vérifiez votre connexion');
+    initFirebase();
+    setTimeout(()=>{if(fbDb) _envoyerDolFirebase(dol);},2000);
+    return;
+  }
+  _envoyerDolFirebase(dol);
 }
 
 function afterSuccess(where){
