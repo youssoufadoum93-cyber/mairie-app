@@ -317,6 +317,30 @@
     .mi-ico.purple{background:var(--purple-light,#f5f3ff);}
     .mi-label{flex:1;font-size:.88rem;font-weight:600;}
     .mi-arrow{color:var(--text-secondary);font-size:.85rem;}
+    /* DÉMARCHES */
+    .doc-type-card{background:#fff;border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;box-shadow:var(--shadow);border:2px solid transparent;transition:.15s;}
+    .doc-type-card:active{transform:scale(.95);border-color:var(--blue);}
+    .dt-ico{font-size:2rem;margin-bottom:8px;}
+    .dt-label{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.3;}
+    .dt-delay{font-size:.7rem;color:var(--text-secondary);}
+    .dem-card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer;transition:.15s;}
+    .dem-card:active{transform:scale(.98);}
+    .dem-stripe{height:4px;}
+    .dem-stripe.en_attente{background:var(--gray);}
+    .dem-stripe.en_cours{background:var(--yellow);}
+    .dem-stripe.prêt{background:var(--blue);}
+    .dem-stripe.livré{background:var(--green);}
+    .dem-inner{padding:13px 14px;}
+    .dem-ref{font-size:.72rem;color:var(--blue);font-weight:700;margin-bottom:4px;}
+    .dem-title{font-size:.9rem;font-weight:700;margin-bottom:4px;}
+    .dem-meta{font-size:.75rem;color:var(--text-secondary);}
+    .badge-prêt{background:var(--blue-light);color:var(--blue);}
+    .badge-livré{background:var(--green-light);color:var(--green);}
+
+    /* FORM DEMANDE OVERLAY */
+    #demFormOverlay{position:absolute;inset:0;background:var(--gray-light);z-index:300;display:none;flex-direction:column;overflow:hidden;}
+    #demFormOverlay.show{display:flex;}
+
     .doc-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--gray-light);border-radius:12px;margin-bottom:8px;}
     .doc-ico{font-size:1.3rem;}
     .doc-info{flex:1;}
@@ -454,9 +478,9 @@
 
       <div class="quick-grid">
         <button class="quick-item" onclick="openForm()"><div class="q-ico">📝</div><div class="q-lbl">Nouvelle doléance</div></button>
-        <button class="quick-item" onclick="showScreen('doleances')"><div class="q-ico">📋</div><div class="q-lbl">Mes doléances</div></button>
+        <button class="quick-item" onclick="showScreen('demarches')"><div class="q-ico">📄</div><div class="q-lbl">Demande document</div></button>
         <button class="quick-item" onclick="showScreen('alertes')"><div class="q-ico">🔔</div><div class="q-lbl">Alertes</div></button>
-        <button class="quick-item" onclick="showScreen('profil')"><div class="q-ico">📁</div><div class="q-lbl">Documents</div></button>
+        <button class="quick-item" onclick="showScreen('profil')"><div class="q-ico">👤</div><div class="q-lbl">Mon compte</div></button>
       </div>
 
       <div class="card" id="urgentHomeCard" style="display:none;background:var(--red);color:#fff;padding:14px 16px"></div>
@@ -475,6 +499,68 @@
         <div class="dtab" onclick="switchDolTab(this,'toutes')">Toutes</div>
       </div>
       <div id="dolListContainer"></div>
+    </div>
+
+    <!-- ======= DÉMARCHES ======= -->
+    <div id="screen-demarches" class="screen">
+      <div class="dol-tabs">
+        <div class="dtab active" onclick="switchDemTab(this,'demander')">📄 Demander</div>
+        <div class="dtab" onclick="switchDemTab(this,'suivi')">📋 Mes demandes</div>
+      </div>
+
+      <!-- CHOISIR DOCUMENT -->
+      <div id="dem-demander">
+        <div class="card" style="padding:14px 16px;margin-bottom:12px">
+          <div style="font-size:.88rem;font-weight:700;margin-bottom:4px">Quel document souhaitez-vous ?</div>
+          <div style="font-size:.8rem;color:var(--text-secondary)">Sélectionnez ci-dessous et remplissez le formulaire</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="doc-type-card" onclick="ouvrirFormDem('naissance')">
+            <div class="dt-ico">📄</div>
+            <div class="dt-label">Acte de naissance</div>
+            <div class="dt-delay">⏱️ 2 à 5 jours</div>
+          </div>
+          <div class="doc-type-card" onclick="ouvrirFormDem('mariage')">
+            <div class="dt-ico">💍</div>
+            <div class="dt-label">Acte de mariage</div>
+            <div class="dt-delay">⏱️ 2 à 5 jours</div>
+          </div>
+          <div class="doc-type-card" onclick="ouvrirFormDem('deces')">
+            <div class="dt-ico">📜</div>
+            <div class="dt-label">Acte de décès</div>
+            <div class="dt-delay">⏱️ 2 à 5 jours</div>
+          </div>
+          <div class="doc-type-card" onclick="ouvrirFormDem('residence')">
+            <div class="dt-ico">🏠</div>
+            <div class="dt-label">Certificat de résidence</div>
+            <div class="dt-delay">⏱️ 1 à 2 jours</div>
+          </div>
+          <div class="doc-type-card" onclick="ouvrirFormDem('legalisation')">
+            <div class="dt-ico">✅</div>
+            <div class="dt-label">Légalisation de document</div>
+            <div class="dt-delay">⏱️ 1 jour</div>
+          </div>
+          <div class="doc-type-card" onclick="ouvrirFormDem('electoral')">
+            <div class="dt-ico">🗳️</div>
+            <div class="dt-label">Inscription électorale</div>
+            <div class="dt-delay">⏱️ 3 à 7 jours</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px;padding:14px;background:var(--blue-light);border:1.5px solid #bfdbfe">
+          <div style="font-size:.82rem;color:var(--blue);line-height:1.6">
+            ℹ️ <strong>Comment ça marche ?</strong><br/>
+            1. Sélectionnez votre document<br/>
+            2. Remplissez le formulaire<br/>
+            3. Recevez un numéro de référence par SMS<br/>
+            4. Récupérez le document au guichet ou par livraison
+          </div>
+        </div>
+      </div>
+
+      <!-- MES DEMANDES -->
+      <div id="dem-suivi" style="display:none">
+        <div id="demListContainer"></div>
+      </div>
     </div>
 
     <!-- ======= ALERTES ======= -->
@@ -532,11 +618,41 @@
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav" id="mainNav" style="display:none">
     <button class="bnav active" onclick="showScreen('home')"><div class="ico">🏠</div>Accueil</button>
-    <button class="bnav" onclick="showScreen('doleances')"><div class="ico">📝</div>Doléances<div class="bnav-badge" id="dolBadge" style="display:none">0</div></button>
+    <button class="bnav" onclick="showScreen('demarches')"><div class="ico">📄</div>Démarches</button>
     <button class="bnav" onclick="openForm()" style="color:var(--blue)"><div class="ico" style="background:var(--blue);color:#fff;border-radius:50%;width:46px;height:46px;display:flex;align-items:center;justify-content:center;margin-top:-16px;font-size:1.4rem;box-shadow:0 4px 14px rgba(26,86,219,.4)">+</div>Signaler</button>
     <button class="bnav" onclick="showScreen('alertes')"><div class="ico">🔔</div>Alertes<div class="bnav-badge" id="alertBadge" style="display:none">0</div></button>
     <button class="bnav" onclick="showScreen('profil')"><div class="ico">👤</div>Compte</button>
   </nav>
+
+  <!-- ====== FORMULAIRE DEMANDE DOCUMENT ====== -->
+  <div id="demFormOverlay">
+    <div class="form-topbar">
+      <button class="form-back" onclick="fermerFormDem()">←</button>
+      <div class="form-topbar-title" id="demFormTitle">Demande de document</div>
+    </div>
+    <div class="form-body" style="padding:16px">
+      <div id="demFormContent"></div>
+    </div>
+    <div class="form-footer">
+      <button class="btn-next" onclick="soumettreDemandeDoc()">✅ Envoyer la demande</button>
+    </div>
+  </div>
+
+  <!-- ====== SUCCÈS DEMANDE ====== -->
+  <div id="demSuccessOverlay" style="position:absolute;inset:0;background:rgba(255,255,255,.96);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
+    <div style="width:90px;height:90px;background:var(--blue-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.8rem;margin-bottom:20px;animation:pop .4s ease">📄</div>
+    <div style="font-size:1.4rem;font-weight:800;margin-bottom:8px">Demande envoyée !</div>
+    <div style="font-size:.88rem;color:var(--text-secondary);margin-bottom:20px;line-height:1.6">Votre demande a été enregistrée. La mairie traitera votre dossier et vous contactera par SMS.</div>
+    <div style="background:var(--blue-light);border:2px solid #bfdbfe;border-radius:12px;padding:14px 20px;margin-bottom:24px;width:100%">
+      <div style="font-size:.72rem;color:var(--blue);font-weight:700;text-transform:uppercase;margin-bottom:4px">Numéro de référence</div>
+      <div id="demRefNum" style="font-size:1.3rem;font-weight:800;color:var(--blue);letter-spacing:.04em">DEM-2026-0001</div>
+    </div>
+    <div style="background:#fef3c7;border-radius:10px;padding:12px;margin-bottom:24px;font-size:.82rem;color:#92400e;width:100%;text-align:left">
+      📍 <strong>Retrait au guichet :</strong> Mairie centrale, Bureau État Civil — Lundi au Vendredi 8h–16h
+    </div>
+    <button class="btn-next" onclick="apresDemandeDoc()">📋 Suivre ma demande</button>
+    <button style="width:100%;padding:13px;background:none;color:var(--blue);border:2px solid var(--blue);border-radius:14px;font-size:.92rem;font-weight:700;cursor:pointer;margin-top:10px" onclick="document.getElementById('demSuccessOverlay').style.display='none';showScreen('home')">🏠 Retour à l'accueil</button>
+  </div>
 
   <!-- ====== FORM OVERLAY (wizard) ====== -->
   <div id="formOverlay">
@@ -1134,17 +1250,189 @@ function updateBadges(){
 }
 
 // ========================= NAVIGATION =========================
-const SCREEN_TITLES={home:'🏛️ Mairie Numérique',doleances:'📝 Mes doléances',alertes:'📢 Alertes & Actualités',profil:'👤 Mon compte'};
+const SCREEN_TITLES={home:'🏛️ Mairie Numérique',demarches:'📄 Démarches & Documents',doleances:'📝 Mes doléances',alertes:'📢 Alertes & Actualités',profil:'👤 Mon compte'};
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.bnav').forEach(b=>b.classList.remove('active'));
   document.getElementById(`screen-${id}`).classList.add('active');
   document.getElementById('topbarTitle').textContent=SCREEN_TITLES[id]||'Mairie';
-  const idx=['home','doleances','_','alertes','profil'].indexOf(id);
+  const idx=['home','demarches','_','alertes','profil'].indexOf(id);
   if(idx>=0&&idx!==2) document.querySelectorAll('.bnav')[idx].classList.add('active');
   document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});
   if(id==='doleances') renderDolList();
   if(id==='alertes') renderAlertes();
+  if(id==='demarches'){
+    document.getElementById('dem-demander').style.display='block';
+    document.getElementById('dem-suivi').style.display='none';
+    document.querySelectorAll('#screen-demarches .dtab')[0].classList.add('active');
+    document.querySelectorAll('#screen-demarches .dtab')[1].classList.remove('active');
+  }
+}
+
+// ========================= DÉMARCHES =========================
+const DOCS_TYPES={
+  naissance:{label:'Acte de naissance',ico:'📄',champs:['nom','prenom','date_naissance','lieu_naissance','nom_pere','nom_mere','copies']},
+  mariage:{label:'Acte de mariage',ico:'💍',champs:['nom_epoux','prenom_epoux','nom_epouse','prenom_epouse','date_mariage','copies']},
+  deces:{label:'Acte de décès',ico:'📜',champs:['nom_defunt','prenom_defunt','date_deces','copies']},
+  residence:{label:'Certificat de résidence',ico:'🏠',champs:['nom','prenom','adresse','motif','copies']},
+  legalisation:{label:'Légalisation de document',ico:'✅',champs:['nom','prenom','type_doc','copies']},
+  electoral:{label:'Inscription électorale',ico:'🗳️',champs:['nom','prenom','date_naissance','adresse']}
+};
+let currentDocType=null;
+
+function getDemandes(){
+  const r=localStorage.getItem('demandes_doc');
+  if(r) return JSON.parse(r);
+  return [];
+}
+function saveDemandes(d){localStorage.setItem('demandes_doc',JSON.stringify(d));}
+
+function switchDemTab(el,mode){
+  document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('dem-demander').style.display=mode==='demander'?'block':'none';
+  document.getElementById('dem-suivi').style.display=mode==='suivi'?'block':'none';
+  if(mode==='suivi') renderDemandeList();
+}
+
+function ouvrirFormDem(type){
+  currentDocType=type;
+  const doc=DOCS_TYPES[type];
+  document.getElementById('demFormTitle').textContent=doc.ico+' '+doc.label;
+  const user=getUser();
+  const champs={
+    nom:{label:'Nom de famille',placeholder:'Ex : Koné',type:'text'},
+    prenom:{label:'Prénom(s)',placeholder:'Ex : Mamadou',type:'text'},
+    date_naissance:{label:'Date de naissance',placeholder:'',type:'date'},
+    lieu_naissance:{label:'Lieu de naissance',placeholder:'Ex : N\'Djamena',type:'text'},
+    nom_pere:{label:'Nom complet du père',placeholder:'',type:'text'},
+    nom_mere:{label:'Nom complet de la mère',placeholder:'',type:'text'},
+    nom_epoux:{label:'Nom de l\'époux',placeholder:'',type:'text'},
+    prenom_epoux:{label:'Prénom de l\'époux',placeholder:'',type:'text'},
+    nom_epouse:{label:'Nom de l\'épouse',placeholder:'',type:'text'},
+    prenom_epouse:{label:'Prénom de l\'épouse',placeholder:'',type:'text'},
+    date_mariage:{label:'Date du mariage',placeholder:'',type:'date'},
+    nom_defunt:{label:'Nom du défunt',placeholder:'',type:'text'},
+    prenom_defunt:{label:'Prénom du défunt',placeholder:'',type:'text'},
+    date_deces:{label:'Date du décès',placeholder:'',type:'date'},
+    adresse:{label:'Adresse complète',placeholder:'Ex : Rue de la Paix, Centre-ville',type:'text'},
+    motif:{label:'Motif de la demande',placeholder:'Ex : Ouverture de compte bancaire',type:'text'},
+    type_doc:{label:'Type de document à légaliser',placeholder:'Ex : Diplôme, Contrat...',type:'text'},
+    copies:{label:'Nombre de copies souhaitées',placeholder:'',type:'number'}
+  };
+  const html=`
+    <div style="background:var(--blue-light);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.82rem;color:var(--blue)">
+      ${doc.ico} <strong>${doc.label}</strong> — Délai de traitement : ${type==='residence'||type==='legalisation'?'1 à 2 jours':'2 à 5 jours'}
+    </div>
+    ${doc.champs.map(c=>`
+      <label class="form-label">${champs[c].label} *</label>
+      <input class="form-input" type="${champs[c].type}" id="dem_${c}" placeholder="${champs[c].placeholder}" value="${c==='copies'?'1':c==='nom'?user?.nom||'':c==='prenom'?user?.prenom||'':''}"/>
+    `).join('')}
+    <label class="form-label">Mode de retrait</label>
+    <select class="form-input form-select" id="dem_retrait">
+      <option value="guichet">🏛️ Retrait au guichet (gratuit)</option>
+      <option value="livraison">🚗 Livraison à domicile (500 FCFA)</option>
+    </select>
+    <label class="form-label">Téléphone pour notification SMS</label>
+    <input class="form-input" type="tel" id="dem_tel" placeholder="Ex: 6X XX XX XX" value="${user?.tel||''}"/>
+  `;
+  document.getElementById('demFormContent').innerHTML=html;
+  document.getElementById('demFormOverlay').classList.add('show');
+}
+
+function fermerFormDem(){
+  document.getElementById('demFormOverlay').classList.remove('show');
+}
+
+function soumettreDemandeDoc(){
+  const doc=DOCS_TYPES[currentDocType];
+  const tel=document.getElementById('dem_tel').value.trim();
+  if(!tel){showToast('⚠️ Veuillez entrer votre numéro de téléphone');return;}
+  // Collecter les données
+  const donnees={};
+  doc.champs.forEach(c=>{
+    const el=document.getElementById('dem_'+c);
+    if(el) donnees[c]=el.value.trim();
+  });
+  const user=getUser();
+  const dems=getDemandes();
+  const ref='DEM-2026-'+String(dems.length+1).padStart(4,'0');
+  const nouvDem={
+    id:Date.now(),ref,
+    type:currentDocType,
+    label:doc.label,ico:doc.ico,
+    donnees,
+    tel,
+    retrait:document.getElementById('dem_retrait').value,
+    citoyen:user?.nom||'Citoyen',
+    date:new Date().toISOString().slice(0,10),
+    statut:'en_attente',
+    commentaire:''
+  };
+  dems.unshift(nouvDem);
+  saveDemandes(dems);
+  // Firebase sync
+  if(fbDb){
+    fbDb.ref('demandes/'+nouvDem.id).set(nouvDem).catch(()=>{});
+  }
+  document.getElementById('demRefNum').textContent=ref;
+  fermerFormDem();
+  document.getElementById('demSuccessOverlay').style.display='flex';
+}
+
+function apresDemandeDoc(){
+  document.getElementById('demSuccessOverlay').style.display='none';
+  showScreen('demarches');
+  switchDemTab(document.querySelectorAll('#screen-demarches .dtab')[1],'suivi');
+}
+
+function renderDemandeList(){
+  const dems=getDemandes();
+  const c=document.getElementById('demListContainer');
+  if(!dems.length){
+    c.innerHTML='<div class="dol-empty"><span class="e-ico">📭</span><p style="font-weight:700;margin-bottom:6px">Aucune demande</p><p style="font-size:.82rem">Appuyez sur "Demander" pour faire votre première demande</p></div>';
+    return;
+  }
+  const statusLabel={en_attente:'⏳ En attente',en_cours:'🟡 En cours',prêt:'✅ Prêt à retirer',livré:'📦 Livré'};
+  c.innerHTML=dems.map(d=>`
+    <div class="dem-card" onclick="ouvrirDetailDemande(${d.id})">
+      <div class="dem-stripe ${d.statut}"></div>
+      <div class="dem-inner">
+        <div class="dem-ref">${d.ref} · ${d.date}</div>
+        <div class="dem-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="dem-title">${d.ico} ${d.label}</div>
+          <span class="badge badge-${d.statut}">${statusLabel[d.statut]||d.statut}</span>
+        </div>
+        <div class="dem-meta">👤 ${d.citoyen} · 📞 ${d.tel}</div>
+        <div class="dem-meta" style="margin-top:2px">${d.retrait==='livraison'?'🚗 Livraison à domicile':'🏛️ Retrait au guichet'}</div>
+        ${d.commentaire?`<div style="margin-top:6px;font-size:.78rem;color:var(--blue);background:var(--blue-light);padding:6px 10px;border-radius:8px">💬 ${d.commentaire}</div>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function ouvrirDetailDemande(id){
+  const d=getDemandes().find(x=>x.id===id);if(!d)return;
+  const statusLabel={en_attente:'⏳ En attente de traitement',en_cours:'🟡 En cours de traitement',prêt:'✅ Prêt à retirer au guichet',livré:'📦 Document livré'};
+  const statusColor={en_attente:'var(--gray)',en_cours:'var(--yellow)',prêt:'var(--blue)',livré:'var(--green)'};
+  document.getElementById('modalTitle').textContent=d.ico+' '+d.label;
+  document.getElementById('modalBody').innerHTML=`
+    <div style="background:var(--blue-light);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--blue);margin-bottom:4px">RÉFÉRENCE</div>
+      <div style="font-size:1.2rem;font-weight:800;color:var(--blue)">${d.ref}</div>
+    </div>
+    <div style="background:${statusColor[d.statut]}22;border-left:4px solid ${statusColor[d.statut]};border-radius:8px;padding:12px;margin-bottom:14px">
+      <div style="font-weight:700;font-size:.88rem">${statusLabel[d.statut]||d.statut}</div>
+      ${d.commentaire?`<div style="font-size:.8rem;margin-top:4px">${d.commentaire}</div>`:''}
+    </div>
+    <div style="font-size:.84rem;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Date demande</span><strong>📅 ${d.date}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Téléphone</span><strong>📞 ${d.tel}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Mode retrait</span><strong>${d.retrait==='livraison'?'🚗 Livraison':'🏛️ Guichet'}</strong></div>
+    </div>
+    ${d.statut==='prêt'?`<div style="margin-top:14px;background:#dbeafe;border-radius:12px;padding:14px;font-size:.83rem;color:var(--blue);line-height:1.6">📍 <strong>Votre document est prêt !</strong><br/>Présentez-vous au guichet État Civil de la mairie avec une pièce d'identité et le numéro <strong>${d.ref}</strong></div>`:''}
+  `;
+  document.getElementById('modal').classList.add('show');
 }
 
 // ========================= TOAST =========================
