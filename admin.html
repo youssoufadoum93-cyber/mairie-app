@@ -229,6 +229,7 @@
     <div class="nav-label">Principal</div>
     <div class="nav-item active" onclick="showSection('accueil_admin',this)"><span class="n-ico">📊</span> Tableau de bord</div>
     <div class="nav-item" onclick="showSection('signalements',this)"><span class="n-ico">🚨</span> Signalements <span class="nav-badge" id="navBadgeSig">0</span></div>
+    <div class="nav-item" onclick="showSection('doleances_admin',this)"><span class="n-ico">📝</span> Doléances citoyens <span class="nav-badge" id="navBadgeDol">0</span></div>
     <div class="nav-item" onclick="showSection('demandes',this)"><span class="n-ico">📋</span> Demandes admin <span class="nav-badge" id="navBadgeDem">0</span></div>
     <div class="nav-label">Finances</div>
     <div class="nav-item" onclick="showSection('revenus',this)"><span class="n-ico">💰</span> Revenus fiscaux</div>
@@ -346,6 +347,34 @@
           <tbody id="sigTableBody"></tbody>
         </table>
         <div class="pagination"><span id="sigPagInfo">—</span><div class="page-btns" id="sigPagBtns"></div></div>
+      </div>
+    </div>
+
+    <!-- =========== DOLÉANCES CITOYENS =========== -->
+    <div id="doleances_admin" class="section">
+      <div class="section-head">
+        <div><h2>📝 Doléances Citoyens</h2><p>Doléances soumises par les citoyens via l'app mobile — temps réel</p></div>
+        <button class="tb-btn primary" onclick="renderDolTable()">🔄 Actualiser</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="dolKpiRow"></div>
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Toutes les doléances</div>
+          <div class="table-actions">
+            <input class="search-input" type="text" placeholder="🔍 Rechercher..." oninput="filterDol(this.value)"/>
+            <select class="filter-select" onchange="filterDolStatus(this.value)">
+              <option value="tous">Tous les statuts</option>
+              <option value="nouveau">🔵 Nouveau</option>
+              <option value="en_cours">🟡 En cours</option>
+              <option value="résolu">🟢 Résolu</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Réf</th><th>Catégorie</th><th>Titre</th><th>Citoyen</th><th>Quartier</th><th>Urgence</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="dolTableBody"></tbody>
+        </table>
+        <div class="pagination"><span id="dolPagInfo">—</span></div>
       </div>
     </div>
 
@@ -579,25 +608,28 @@ window.addEventListener('load',()=>{
 });
 
 function updateNavBadges(){
-  const sigs=getSigs(), dems=getDems();
+  const sigs=getSigs(), dems=getDems(), dols=getDoleances();
   const nbSig=sigs.filter(s=>s.statut==='nouveau').length;
   const nbDem=dems.filter(d=>d.statut==='en_attente').length;
+  const nbDol=dols.filter(d=>d.statut==='nouveau').length;
   document.getElementById('navBadgeSig').textContent=nbSig||'';
   document.getElementById('navBadgeSig').style.display=nbSig?'inline':'none';
+  const bdol=document.getElementById('navBadgeDol');
+  if(bdol){bdol.textContent=nbDol||'';bdol.style.display=nbDol?'inline':'none';}
   document.getElementById('navBadgeDem').textContent=nbDem||'';
   document.getElementById('navBadgeDem').style.display=nbDem?'inline':'none';
-  document.getElementById('notifCount').textContent=nbSig+nbDem||'';
-  document.getElementById('notifDot').style.display=(nbSig+nbDem)>0?'block':'none';
+  document.getElementById('notifCount').textContent=nbSig+nbDem+nbDol||'';
+  document.getElementById('notifDot').style.display=(nbSig+nbDem+nbDol)>0?'block':'none';
 }
 
 // ============================= OVERVIEW =============================
 function renderAccueilAdmin(){
-  const sigs=getSigs(), dems=getDems(), pays=getPays();
+  const sigs=getSigs(), dems=getDems(), pays=getPays(), dols=getDoleances();
   const total=sigs.length, nouveau=sigs.filter(s=>s.statut==='nouveau').length;
   const en_cours=sigs.filter(s=>s.statut==='en_cours').length, resolu=sigs.filter(s=>s.statut==='résolu').length;
   const totalPaye=pays.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0);
   const demsEnAttente=dems.filter(d=>d.statut==='en_attente').length;
-  const alertesActives=getAlertes().filter(a=>a.type==='urgence'||a.type==='alerte').length;
+  const dolsNouveau=dols.filter(d=>d.statut==='nouveau').length;
 
   document.getElementById('kpiGrid').innerHTML=`
     <div class="kpi-card"><span class="kpi-ico">🚨</span><div class="kpi-value">${total}</div><div class="kpi-label">Total signalements</div><span class="kpi-trend trend-up">↑ actif</span></div>
@@ -605,7 +637,8 @@ function renderAccueilAdmin(){
     <div class="kpi-card yellow"><span class="kpi-ico">🟡</span><div class="kpi-value">${en_cours}</div><div class="kpi-label">En cours de traitement</div></div>
     <div class="kpi-card green"><span class="kpi-ico">✅</span><div class="kpi-value">${resolu}</div><div class="kpi-label">Résolus avec succès</div><span class="kpi-trend trend-up">↑ ${Math.round(resolu/total*100)||0}%</span></div>
     <div class="kpi-card orange"><span class="kpi-ico">💰</span><div class="kpi-value">${(totalPaye/1000).toFixed(0)}K</div><div class="kpi-label">Revenus collectés (FCFA)</div><span class="kpi-trend trend-up">↑ ce mois</span></div>
-    <div class="kpi-card purple"><span class="kpi-ico">📋</span><div class="kpi-value">${demsEnAttente}</div><div class="kpi-label">Demandes en attente</div></div>`;
+    <div class="kpi-card purple"><span class="kpi-ico">📋</span><div class="kpi-value">${demsEnAttente}</div><div class="kpi-label">Demandes en attente</div></div>
+    <div class="kpi-card red" style="cursor:pointer" onclick="showSection('doleances_admin',document.querySelectorAll('.nav-item')[2])"><span class="kpi-ico">📝</span><div class="kpi-value">${dols.length}</div><div class="kpi-label">Doléances citoyens</div><span class="kpi-trend trend-down">${dolsNouveau} nouvelle(s)</span></div>`;
 
   // Recent signalements
   const recent=getSigs().slice(0,6);
@@ -687,6 +720,67 @@ function renderSigTable(){
 function filterSig(v){sigFilter.search=v;renderSigTable();}
 function filterSigStatus(v){sigFilter.statut=v;renderSigTable();}
 function filterSigType(v){sigFilter.type=v;renderSigTable();}
+
+// ============================= DOLÉANCES CITOYENS =============================
+function getDoleances(){return JSON.parse(localStorage.getItem('doleances')||'[]');}
+const DOL_CATS={route:{label:'Voirie',ico:'🛣️'},eau:{label:'Eau',ico:'💧'},eclairage:{label:'Éclairage',ico:'💡'},ordures:{label:'Ordures',ico:'🗑️'},infrastructure:{label:'Infrastructure',ico:'🏗️'},voirie:{label:'Voirie',ico:'🛣️'},environnement:{label:'Environnement',ico:'🌿'},securite:{label:'Sécurité',ico:'🔐'},social:{label:'Social',ico:'👨‍👩‍👧'},administratif:{label:'Administratif',ico:'📋'},autre:{label:'Autre',ico:'⚠️'}};
+const DOL_URG={haute:{label:'Urgent',ico:'🔴'},normale:{label:'Normal',ico:'🟡'},basse:{label:'Non urgent',ico:'🟢'}};
+let dolFilter={search:'',statut:'tous'};
+
+function renderDolTable(){
+  const all=getDoleances();
+  if(!all.length){
+    const el=document.getElementById('dolTableBody');
+    if(el) el.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--gray)">Aucune doléance reçue pour l\'instant</td></tr>';
+    const ki=document.getElementById('dolKpiRow');
+    if(ki) ki.innerHTML='<div class="kpi-card"><div class="kpi-value">0</div><div class="kpi-label">Total</div></div>';
+    const pi=document.getElementById('dolPagInfo');
+    if(pi) pi.textContent='0 résultat(s)';
+    return;
+  }
+  let data=all.filter(d=>{
+    const ms=!dolFilter.search||d.citoyen?.toLowerCase().includes(dolFilter.search.toLowerCase())||d.titre?.toLowerCase().includes(dolFilter.search.toLowerCase())||d.quartier?.toLowerCase().includes(dolFilter.search.toLowerCase());
+    const mst=dolFilter.statut==='tous'||d.statut===dolFilter.statut;
+    return ms&&mst;
+  });
+  const kpis=[
+    {v:all.length,l:'Total',c:''},
+    {v:all.filter(d=>d.statut==='nouveau').length,l:'Nouveaux',c:'red'},
+    {v:all.filter(d=>d.statut==='en_cours').length,l:'En cours',c:'yellow'},
+    {v:all.filter(d=>d.statut==='résolu').length,l:'Résolus',c:'green'},
+  ];
+  document.getElementById('dolKpiRow').innerHTML=kpis.map(k=>`<div class="kpi-card ${k.c}"><div class="kpi-value">${k.v}</div><div class="kpi-label">${k.l}</div></div>`).join('');
+  document.getElementById('dolPagInfo').textContent=`${data.length} résultat(s)`;
+  document.getElementById('dolTableBody').innerHTML=data.map(d=>`
+    <tr>
+      <td style="font-size:.75rem;color:var(--gray)">${d.ref||'#'+d.id}</td>
+      <td>${DOL_CATS[d.cat]?.ico||'⚠️'} <span style="font-size:.8rem;font-weight:600">${DOL_CATS[d.cat]?.label||d.cat||'—'}</span></td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.titre||d.desc||''}">${d.titre||d.desc||'—'}</td>
+      <td class="td-name">${d.citoyen||'—'}</td>
+      <td>📍 ${d.quartier||'—'}</td>
+      <td>${DOL_URG[d.urgence]?.ico||'—'} ${DOL_URG[d.urgence]?.label||d.urgence||'—'}</td>
+      <td style="font-size:.8rem">${d.date||'—'}</td>
+      <td><select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateDolStatus(${d.id},this.value)">
+        <option value="nouveau" ${d.statut==='nouveau'?'selected':''}>🔵 Nouveau</option>
+        <option value="en_cours" ${d.statut==='en_cours'?'selected':''}>🟡 En cours</option>
+        <option value="résolu" ${d.statut==='résolu'?'selected':''}>✅ Résolu</option>
+      </select></td>
+      <td><button class="action-btn blue" onclick="voirDoleance(${d.id})">👁 Voir</button></td>
+    </tr>`).join('');
+}
+function filterDol(v){dolFilter.search=v;renderDolTable();}
+function filterDolStatus(v){dolFilter.statut=v;renderDolTable();}
+function updateDolStatus(id,val){
+  const d=getDoleances();const s=d.find(x=>x.id===id);
+  if(s){s.statut=val;localStorage.setItem('doleances',JSON.stringify(d));}
+  if(fbDb) fbDb.ref('doleances/'+id+'/statut').set(val).catch(()=>{});
+  updateNavBadges();renderAccueilAdmin();showToast(`✅ Doléance mise à jour : ${val.replace('_',' ')}`);
+}
+function voirDoleance(id){
+  const d=getDoleances().find(x=>x.id===id);
+  if(!d) return;
+  alert(`📝 Doléance #${d.ref||d.id}\n\nCatégorie : ${DOL_CATS[d.cat]?.label||d.cat}\nTitre : ${d.titre||'—'}\nDescription : ${d.desc||'—'}\nCitoyen : ${d.citoyen||'—'}\nQuartier : ${d.quartier||'—'}\nUrgence : ${DOL_URG[d.urgence]?.label||d.urgence}\nDate : ${d.date}\nStatut : ${d.statut}`);
+}
 function updateSigStatus(id,val){
   const d=getSigs();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveSigs(d);}
   updateNavBadges();renderAccueilAdmin();showToast(`✅ Statut mis à jour : ${val.replace('_',' ')}`);
@@ -955,7 +1049,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 // ============================= NAVIGATION =============================
-const SECTION_TITLES={'accueil_admin':'Tableau de bord','signalements':'Signalements Citoyens','demandes':'Demandes Administratives','revenus':'Revenus Fiscaux','alertes_admin':'Alertes & Actualités','agents':'Gestion des Agents'};
+const SECTION_TITLES={'accueil_admin':'Tableau de bord','signalements':'Signalements Citoyens','doleances_admin':'Doléances Citoyens','demandes':'Demandes Administratives','revenus':'Revenus Fiscaux','alertes_admin':'Alertes & Actualités','agents':'Gestion des Agents'};
 function showSection(id,navEl){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -964,6 +1058,7 @@ function showSection(id,navEl){
   document.getElementById('breadcrumbText').textContent=SECTION_TITLES[id]||id;
   if(window.innerWidth<=700) document.getElementById('sidebar').classList.remove('open');
   if(id==='signalements') renderSigTable();
+  else if(id==='doleances_admin') renderDolTable();
   else if(id==='demandes') chargerDemandesFirebase();
   else if(id==='revenus') renderRevenus();
   else if(id==='alertes_admin') renderAlertesAdmin();
@@ -1015,6 +1110,8 @@ try{
         localStorage.setItem('doleances',JSON.stringify(l));
         updateNavBadges();
         if(l.length>avant) showToast(`📝 Nouvelle doléance reçue d'un citoyen !`);
+        if(document.getElementById('doleances_admin')?.classList.contains('active')) renderDolTable();
+        if(document.getElementById('accueil_admin')?.classList.contains('active')) renderAccueilAdmin();
       }
     });
     // Écouter demandes de documents citoyens
