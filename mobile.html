@@ -1469,6 +1469,14 @@ function initFirebase(){
     setFbIndicator(true);
 
     // Écouter alertes en temps réel
+    // Pousser les demandes locales non synchronisées vers Firebase
+    const demsLocales=getDemandes();
+    if(demsLocales.length>0){
+      demsLocales.forEach(d=>{
+        fbDb.ref('demandes/'+d.id).set(d).catch(()=>{});
+      });
+    }
+
     fbDb.ref('alertes').on('value',snap=>{
       const v=snap.val();
       if(v){

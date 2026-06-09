@@ -30,6 +30,10 @@
   <div id="step3">⏳ En attente...</div>
 </div>
 <div class="box">
+  <button onclick="syncDemandesLocales()" style="background:#16a34a;font-size:1rem">🔄 SYNCHRONISER MES DEMANDES VERS FIREBASE</button>
+  <div style="font-size:.8rem;color:#6b7280;margin-top:8px;text-align:center">Appuyez ici si vos demandes n'apparaissent pas chez l'admin</div>
+</div>
+<div class="box">
   <button onclick="testLecture()" style="background:#16a34a">📥 Voir alertes dans Firebase</button>
   <button onclick="testDemandes()" style="margin-top:8px;background:#1a56db">📄 Voir demandes dans Firebase</button>
   <button onclick="testEcrireDemande()" style="margin-top:8px;background:#7c3aed">📝 Écrire une demande test</button>
@@ -92,6 +96,31 @@ if(db){
     document.getElementById('step3').innerHTML='<span class="err">❌ Étape 3 ERREUR LECTURE : '+err.message+'</span><div class="info">→ Vérifiez les règles Firebase (Realtime Database → Règles)</div>';
     addLog('ERREUR LECTURE : '+err.message);
   });
+}
+
+function syncDemandesLocales(){
+  if(!db){addLog('ERREUR : Firebase non connecté');return;}
+  // Lire depuis localStorage (même domaine = même stockage)
+  const raw=localStorage.getItem('demandes_doc');
+  const dems=raw?JSON.parse(raw):[];
+  if(!dems.length){
+    addLog('⚠️ Aucune demande trouvée dans votre stockage local');
+    addLog('→ Soumettez d\'abord une demande depuis l\'app mobile');
+    addLog('→ Ou cliquez "Écrire une demande test" pour en créer une');
+    return;
+  }
+  addLog('📄 '+dems.length+' demande(s) trouvée(s) localement — synchronisation...');
+  const promises=dems.map(d=>{
+    return db.ref('demandes/'+d.id).set(d)
+      .then(()=>addLog('  ✅ '+d.label+' — '+d.citoyen+' ('+d.ref+')'));
+  });
+  Promise.all(promises)
+    .then(()=>{
+      addLog('✅ SYNCHRONISATION TERMINÉE ! Allez sur admin → Demandes → 🔄 Actualiser');
+      addLog('');
+      addLog('🔔 L\'admin peut maintenant voir vos demandes !');
+    })
+    .catch(e=>addLog('❌ Erreur : '+e.message));
 }
 
 function testEcriture(){
