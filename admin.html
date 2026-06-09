@@ -743,7 +743,8 @@ function renderDolTable(){
   }
 }
 function _afficherDolTable(){
-  const all=getDoleances();
+  // Filtrer les entrées corrompues (sans ref ni titre ni citoyen)
+  const all=getDoleances().filter(d=>d.ref||d.titre||d.citoyen||d.cat);
   if(!all.length){
     const el=document.getElementById('dolTableBody');
     if(el) el.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--gray)">Aucune doléance reçue pour l\'instant</td></tr>';

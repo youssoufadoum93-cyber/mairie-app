@@ -30,7 +30,7 @@
   <div id="step3">⏳ En attente...</div>
 </div>
 <div class="box">
-  <button onclick="syncDoleancesLocales()" style="background:#7c3aed;font-size:1rem">📝 SYNCHRONISER MES DOLÉANCES VERS FIREBASE</button>
+  <button onclick="nettoyerEtSyncDoleances()" style="background:#7c3aed;font-size:1rem">📝 NETTOYER + SYNCHRONISER MES DOLÉANCES</button>
   <div style="font-size:.8rem;color:#6b7280;margin-top:8px;text-align:center">Appuyez ici si vos doléances n'apparaissent pas chez l'admin</div>
   <button onclick="syncDemandesLocales()" style="background:#16a34a;font-size:1rem;margin-top:10px">🔄 SYNCHRONISER MES DEMANDES VERS FIREBASE</button>
   <div style="font-size:.8rem;color:#6b7280;margin-top:8px;text-align:center">Appuyez ici si vos demandes n'apparaissent pas chez l'admin</div>
@@ -100,6 +100,16 @@ if(db){
     document.getElementById('step3').innerHTML='<span class="err">❌ Étape 3 ERREUR LECTURE : '+err.message+'</span><div class="info">→ Vérifiez les règles Firebase (Realtime Database → Règles)</div>';
     addLog('ERREUR LECTURE : '+err.message);
   });
+}
+
+function nettoyerEtSyncDoleances(){
+  if(!db){addLog('ERREUR : Firebase non connecté');return;}
+  addLog('🧹 Nettoyage des doléances corrompues dans Firebase...');
+  // D'abord supprimer tout le noeud doleances
+  db.ref('doleances').remove().then(()=>{
+    addLog('✅ Ancien contenu supprimé');
+    syncDoleancesLocales();
+  }).catch(e=>addLog('❌ Erreur nettoyage : '+e.message));
 }
 
 function syncDoleancesLocales(){
