@@ -755,7 +755,7 @@ function _afficherDolTable(data){
     if(pi) pi.textContent='0 résultat(s)';
     return;
   }
-  let data=all.filter(d=>{
+  const filtered=all.filter(d=>{
     const ms=!dolFilter.search||d.citoyen?.toLowerCase().includes(dolFilter.search.toLowerCase())||d.titre?.toLowerCase().includes(dolFilter.search.toLowerCase())||d.quartier?.toLowerCase().includes(dolFilter.search.toLowerCase());
     const mst=dolFilter.statut==='tous'||d.statut===dolFilter.statut;
     return ms&&mst;
@@ -767,8 +767,8 @@ function _afficherDolTable(data){
     {v:all.filter(d=>d.statut==='résolu').length,l:'Résolus',c:'green'},
   ];
   document.getElementById('dolKpiRow').innerHTML=kpis.map(k=>`<div class="kpi-card ${k.c}"><div class="kpi-value">${k.v}</div><div class="kpi-label">${k.l}</div></div>`).join('');
-  document.getElementById('dolPagInfo').textContent=`${data.length} résultat(s)`;
-  document.getElementById('dolTableBody').innerHTML=data.map(d=>`
+  document.getElementById('dolPagInfo').textContent=`${filtered.length} résultat(s)`;
+  document.getElementById('dolTableBody').innerHTML=filtered.map(d=>`
     <tr>
       <td style="font-size:.75rem;color:var(--gray)">${d.ref||'#'+d.id}</td>
       <td>${DOL_CATS[d.cat]?.ico||'⚠️'} <span style="font-size:.8rem;font-weight:600">${DOL_CATS[d.cat]?.label||d.cat||'—'}</span></td>
