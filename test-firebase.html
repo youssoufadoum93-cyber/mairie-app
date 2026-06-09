@@ -34,9 +34,11 @@
   <div style="font-size:.8rem;color:#6b7280;margin-top:8px;text-align:center">Appuyez ici si vos demandes n'apparaissent pas chez l'admin</div>
 </div>
 <div class="box">
-  <button onclick="testLecture()" style="background:#16a34a">📥 Voir alertes dans Firebase</button>
+  <button onclick="testDoleances()" style="background:#16a34a">📝 Voir doléances dans Firebase</button>
+  <button onclick="testEcrireDoleance()" style="margin-top:8px;background:#7c3aed">📝 Écrire une doléance test</button>
+  <button onclick="testLecture()" style="margin-top:8px;background:#6b7280">📥 Voir alertes dans Firebase</button>
   <button onclick="testDemandes()" style="margin-top:8px;background:#1a56db">📄 Voir demandes dans Firebase</button>
-  <button onclick="testEcrireDemande()" style="margin-top:8px;background:#7c3aed">📝 Écrire une demande test</button>
+  <button onclick="testEcrireDemande()" style="margin-top:8px;background:#0891b2">📝 Écrire une demande test</button>
   <button onclick="testEcriture()" style="margin-top:8px;background:#ea580c">📢 Écrire une alerte test</button>
 </div>
 <div class="box">
@@ -121,6 +123,37 @@ function syncDemandesLocales(){
       addLog('🔔 L\'admin peut maintenant voir vos demandes !');
     })
     .catch(e=>addLog('❌ Erreur : '+e.message));
+}
+
+function testDoleances(){
+  if(!db){addLog('ERREUR : Firebase non initialisé');return;}
+  addLog('Lecture des doléances dans Firebase...');
+  db.ref('doleances').once('value')
+    .then(snap=>{
+      const v=snap.val();
+      const nb=v?Object.keys(v).length:0;
+      addLog('📝 DOLÉANCES : '+nb+' trouvée(s)');
+      if(v) Object.values(v).forEach(d=>addLog('  → ['+d.cat+'] '+d.titre+' — '+d.citoyen+' ('+d.statut+')'));
+      else addLog('⚠️ Aucune doléance dans Firebase — le mobile na pas écrit ou Firebase bloqué');
+    })
+    .catch(e=>addLog('❌ ERREUR lecture doléances : '+e.message));
+}
+
+function testEcrireDoleance(){
+  if(!db){addLog('ERREUR : Firebase non initialisé');return;}
+  const dol={
+    id:Date.now(),ref:'DOL-TEST-001',
+    cat:'route',titre:'Test doléance voirie',
+    desc:'Test de synchronisation doléance depuis diagnostic.',
+    quartier:'Centre-ville',urgence:'normale',personnes:'1-5',
+    statut:'nouveau',date:new Date().toISOString().slice(0,10),
+    citoyen:'Test Citoyen',lat:12.365,lng:15.044,photo:null,
+    timeline:[{date:new Date().toISOString().slice(0,10),label:'Doléance test',note:'Test diagnostic',type:'submit'}]
+  };
+  addLog('Écriture doléance test dans Firebase...');
+  db.ref('doleances/'+dol.id).set(dol)
+    .then(()=>addLog('✅ DOLÉANCE ÉCRITE ! Allez dans admin → Doléances citoyens'))
+    .catch(e=>addLog('❌ ERREUR : '+e.message+' — Vérifiez les règles Firebase !'));
 }
 
 function testEcriture(){
