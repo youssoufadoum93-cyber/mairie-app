@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test Firebase</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <style>
+    body{font-family:sans-serif;max-width:500px;margin:40px auto;padding:20px;background:#f1f5f9;}
+    h2{margin-bottom:20px;}
+    .box{background:#fff;border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+    .ok{color:#16a34a;font-weight:700;font-size:1rem;}
+    .err{color:#dc2626;font-weight:700;font-size:.95rem;}
+    .info{color:#1a56db;font-size:.88rem;margin-top:6px;}
+    button{width:100%;padding:14px;background:#1a56db;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;}
+    #log{font-size:.82rem;line-height:1.8;white-space:pre-wrap;}
+  </style>
+</head>
+<body>
+<h2>🔧 Diagnostic Firebase</h2>
+
+<div class="box">
+  <div id="step1">⏳ Connexion à Firebase...</div>
+</div>
+<div class="box">
+  <div id="step2">⏳ En attente...</div>
+</div>
+<div class="box">
+  <div id="step3">⏳ En attente...</div>
+</div>
+<div class="box">
+  <button onclick="testEcriture()">📤 Tester l'écriture (publier alerte test)</button>
+  <button onclick="testLecture()" style="margin-top:8px;background:#16a34a">📥 Tester la lecture (voir alertes)</button>
+</div>
+<div class="box">
+  <div style="font-weight:700;margin-bottom:8px">📋 Journal :</div>
+  <div id="log">—</div>
+</div>
+
+<script>
+const FB_CONFIG={
+  apiKey:"AIzaSyCaAWYZhxLWkX6NkQA9gzekguNVC0NFkXQ",
+  authDomain:"mairie-app-1f27a.firebaseapp.com",
+  databaseURL:"https://mairie-app-1f27a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"mairie-app-1f27a",
+  storageBucket:"mairie-app-1f27a.firebasestorage.app",
+  messagingSenderId:"319201016941",
+  appId:"1:319201016941:web:643170e86296ffe8491364"
+};
+
+let db=null;
+const log=[];
+function addLog(msg){log.push(new Date().toLocaleTimeString('fr-FR')+' — '+msg);document.getElementById('log').textContent=log.join('\n');}
+
+// ÉTAPE 1 : Connexion
+try{
+  firebase.initializeApp(FB_CONFIG);
+  db=firebase.database();
+  document.getElementById('step1').innerHTML='<span class="ok">✅ Étape 1 : Firebase SDK chargé et initialisé</span>';
+  addLog('Firebase initialisé avec succès');
+}catch(e){
+  document.getElementById('step1').innerHTML='<span class="err">❌ Étape 1 ERREUR : '+e.message+'</span>';
+  addLog('ERREUR init : '+e.message);
+}
+
+// ÉTAPE 2 : Vérifier la connexion réseau
+if(db){
+  const connRef=firebase.database().ref('.info/connected');
+  connRef.on('value',snap=>{
+    if(snap.val()===true){
+      document.getElementById('step2').innerHTML='<span class="ok">✅ Étape 2 : Connexion réseau Firebase confirmée</span>';
+      addLog('Connexion réseau : OK');
+    } else {
+      document.getElementById('step2').innerHTML='<span class="err">❌ Étape 2 : Déconnecté de Firebase</span><div class="info">Vérifiez votre connexion internet</div>';
+      addLog('Connexion réseau : DÉCONNECTÉ');
+    }
+  });
+}
+
+// ÉTAPE 3 : Écouter les alertes
+if(db){
+  db.ref('alertes').on('value',snap=>{
+    const v=snap.val();
+    const nb=v?Object.keys(v).length:0;
+    document.getElementById('step3').innerHTML=`<span class="ok">✅ Étape 3 : Lecture OK — ${nb} alerte(s) dans Firebase</span>`;
+    addLog(`Lecture alertes : ${nb} entrée(s)`);
+    if(v) Object.values(v).forEach(a=>addLog('  → ['+a.type+'] '+a.titre));
+  },(err)=>{
+    document.getElementById('step3').innerHTML='<span class="err">❌ Étape 3 ERREUR LECTURE : '+err.message+'</span><div class="info">→ Vérifiez les règles Firebase (Realtime Database → Règles)</div>';
+    addLog('ERREUR LECTURE : '+err.message);
+  });
+}
+
+function testEcriture(){
+  if(!db){addLog('ERREUR : Firebase non initialisé');return;}
+  const alerte={id:Date.now(),type:'info',titre:'Alerte test — '+new Date().toLocaleTimeString('fr-FR'),msg:'Ceci est une alerte de test pour vérifier la synchronisation Firebase.',quartiers:['tous'],date:new Date().toISOString().slice(0,10),heure:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),lu:false};
+  addLog('Tentative écriture...');
+  db.ref('alertes/'+alerte.id).set(alerte)
+    .then(()=>addLog('✅ ÉCRITURE RÉUSSIE ! L\'alerte est dans Firebase.'))
+    .catch(e=>addLog('❌ ERREUR ÉCRITURE : '+e.message+'\n→ Allez dans Firebase → Realtime Database → Règles\n→ Mettez ".read":true et ".write":true'));
+}
+
+function testLecture(){
+  if(!db){addLog('ERREUR : Firebase non initialisé');return;}
+  addLog('Lecture manuelle...');
+  db.ref('alertes').once('value')
+    .then(snap=>{
+      const v=snap.val();
+      const nb=v?Object.keys(v).length:0;
+      addLog(`✅ LECTURE OK : ${nb} alerte(s) trouvée(s)`);
+      if(v) Object.values(v).forEach(a=>addLog('  → ['+a.type+'] '+a.titre));
+    })
+    .catch(e=>addLog('❌ ERREUR LECTURE : '+e.message));
+}
+</script>
+</body>
+</html>
