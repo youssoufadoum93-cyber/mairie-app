@@ -1477,6 +1477,35 @@ function ouvrirDetailDemande(id){
   document.getElementById('modal').classList.add('show');
 }
 
+// ========================= NOTIFICATION STATUT =========================
+function afficherNotifStatut(msg){
+  // Notification persistante (reste 6 secondes, plus visible)
+  let notif=document.getElementById('notifStatut');
+  if(!notif){
+    notif=document.createElement('div');
+    notif.id='notifStatut';
+    notif.style.cssText='position:fixed;top:calc(var(--safe-top)+60px);left:10px;right:10px;background:#1e293b;color:#fff;padding:14px 18px;border-radius:14px;font-size:.88rem;font-weight:600;z-index:800;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;align-items:center;gap:10px;';
+    document.getElementById('app').appendChild(notif);
+  }
+  notif.innerHTML=`<span style="font-size:1.3rem">${msg.charAt(0)==='🎉'?'🎉':msg.charAt(0)==='✅'?'✅':'🟡'}</span><span style="flex:1">${msg}</span><span onclick="document.getElementById('notifStatut').style.display='none'" style="cursor:pointer;opacity:.7;font-size:1.1rem">✕</span>`;
+  notif.style.display='flex';
+  setTimeout(()=>{if(notif)notif.style.display='none';},6000);
+}
+
+function updateDemBadge(nb){
+  let badge=document.getElementById('demBadge2');
+  if(!badge){
+    const navItems=document.querySelectorAll('.bnav');
+    if(navItems[1]){
+      badge=document.createElement('div');
+      badge.id='demBadge2';
+      badge.className='bnav-badge';
+      navItems[1].appendChild(badge);
+    }
+  }
+  if(badge){badge.textContent=nb;badge.style.display=nb>0?'flex':'none';}
+}
+
 // ========================= TOAST =========================
 function showToast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
@@ -1548,33 +1577,58 @@ function initFirebase(){
       }
     });
 
-    // Écouter mises à jour des demandes de documents (statut mis à jour par l'admin)
+    // Écouter en temps réel les mises à jour de statut des demandes
     fbDb.ref('demandes').on('value',snap=>{
-      const v=snap.val();
-      if(v){
-        const dems=getDemandes();
-        let changed=false;
-        Object.values(v).forEach(fbDem=>{
-          const local=dems.find(d=>d.id===fbDem.id);
-          if(local){
-            if(fbDem.statut && local.statut!==fbDem.statut){
-              local.statut=fbDem.statut;
-              changed=true;
-              if(fbDem.statut==='prêt') showToast('📄 '+local.label+' — Prêt à retirer au guichet !');
-              else if(fbDem.statut==='en_cours') showToast('🟡 Votre demande est en cours de traitement');
-              else if(fbDem.statut==='livré') showToast('✅ Document livré — Merci !');
-            }
-            if(fbDem.commentaire!==undefined) local.commentaire=fbDem.commentaire;
-          }
-        });
-        if(changed){
-          saveDemandes(dems);
-          if(document.getElementById('screen-demarches')?.classList.contains('active')) renderDemandeList();
-        }
+      verifierMisesAJourStatut(snap.val());
+    });
+
+    // Vérification automatique toutes les 30 secondes (filet de sécurité anti-cache)
+    setInterval(()=>{
+      if(!fbDb) return;
+      fbDb.ref('demandes').once('value')
+        .then(snap=>verifierMisesAJourStatut(snap.val()))
+        .catch(()=>{});
+    }, 30000);
+
+    // Vérifier aussi quand l'utilisateur revient sur l'app (depuis l'arrière-plan)
+    document.addEventListener('visibilitychange',()=>{
+      if(!document.hidden && fbDb){
+        fbDb.ref('demandes').once('value')
+          .then(snap=>verifierMisesAJourStatut(snap.val()))
+          .catch(()=>{});
       }
     });
 
   }catch(e){console.warn('Firebase non disponible:',e);setFbIndicator(false);}
+}
+
+function verifierMisesAJourStatut(v){
+  if(!v) return;
+  const dems=getDemandes();
+  if(!dems.length) return;
+  let nbChanges=0;
+  const messages=[];
+  Object.values(v).forEach(fbDem=>{
+    const local=dems.find(d=>String(d.id)===String(fbDem.id));
+    if(local && fbDem.statut && local.statut!==fbDem.statut){
+      local.statut=fbDem.statut;
+      if(fbDem.commentaire!==undefined) local.commentaire=fbDem.commentaire;
+      nbChanges++;
+      if(fbDem.statut==='prêt') messages.push('🎉 '+local.label+' est PRÊT à retirer au guichet !');
+      else if(fbDem.statut==='en_cours') messages.push('🟡 '+local.label+' est en cours de traitement');
+      else if(fbDem.statut==='livré') messages.push('✅ '+local.label+' a été livré !');
+    }
+  });
+  if(nbChanges>0){
+    saveDemandes(dems);
+    // Afficher les notifications une par une
+    messages.forEach((msg,i)=>setTimeout(()=>afficherNotifStatut(msg),i*3500));
+    // Mettre à jour le badge démarches
+    const prets=dems.filter(d=>d.statut==='prêt').length;
+    updateDemBadge(prets);
+    // Rafraîchir la liste si ouverte
+    if(document.getElementById('screen-demarches')?.classList.contains('active')) renderDemandeList();
+  }
 }
 
 // Surcharge saveDols pour synchroniser Firebase
