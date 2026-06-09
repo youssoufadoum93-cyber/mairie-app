@@ -1419,15 +1419,11 @@ function ouvrirFormDem(type){
     copies:{label:'Nombre de copies souhaitées',placeholder:'',type:'number'}
   };
   const html=`
-    <div style="background:var(--blue-light);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.82rem;color:var(--blue)">
-      ${doc.ico} <strong>${doc.label}</strong> — Délai de traitement : ${type==='residence'||type==='legalisation'?'1 à 2 jours':'2 à 5 jours'}
+    <div style="background:var(--blue-light);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:.82rem;color:var(--blue)">
+      ${doc.ico} <strong>${doc.label}</strong> — Délai : ${type==='residence'||type==='legalisation'?'1 à 2 jours':'2 à 5 jours'}
     </div>
-    ${doc.champs.map(c=>`
-      <label class="form-label">${champs[c].label} *</label>
-      <input class="form-input" type="${champs[c].type}" id="dem_${c}" placeholder="${champs[c].placeholder}" value="${c==='copies'?'1':c==='nom'?user?.nom||'':c==='prenom'?user?.prenom||'':''}"/>
-    `).join('')}
-    <label class="form-label" style="margin-top:6px">Pièces justificatives (max 2 — PDF ou photo)</label>
-    <div style="display:flex;gap:8px;margin-bottom:4px">
+    <label class="form-label">Pièces justificatives (max 2 — PDF ou photo)</label>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
       <label class="media-btn" style="flex:1;padding:12px 6px">
         <span style="font-size:1.5rem">📎</span><span style="font-size:.75rem">Pièce 1</span>
         <input type="file" accept="image/*,.pdf,application/pdf" onchange="handlePiece(this,0)">
@@ -1437,7 +1433,11 @@ function ouvrirFormDem(type){
         <input type="file" accept="image/*,.pdf,application/pdf" onchange="handlePiece(this,1)">
       </label>
     </div>
-    <div id="piecesPrev" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div id="piecesPrev" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+    ${doc.champs.map(c=>`
+      <label class="form-label">${champs[c].label} *</label>
+      <input class="form-input" type="${champs[c].type}" id="dem_${c}" placeholder="${champs[c].placeholder}" value="${c==='copies'?'1':c==='nom'?user?.nom||'':c==='prenom'?user?.prenom||'':''}"/>
+    `).join('')}
     <label class="form-label">Mode de retrait</label>
     <select class="form-input form-select" id="dem_retrait">
       <option value="guichet">🏛️ Retrait au guichet (gratuit)</option>
