@@ -203,13 +203,14 @@
     .form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
     .form-textarea{resize:vertical;min-height:90px;}
     .form-select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
-    .photo-zone{border:2px dashed var(--border);border-radius:14px;padding:24px;text-align:center;cursor:pointer;position:relative;background:#fff;transition:.2s;}
-    .photo-zone:active{background:var(--blue-light);}
-    .photo-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
-    .photo-zone .pz-ico{font-size:2.5rem;margin-bottom:8px;}
-    .photo-zone .pz-txt{font-size:.84rem;color:var(--text-secondary);}
+    .media-btns{display:flex;gap:8px;margin-bottom:4px;}
+    .media-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#fff;border:2px solid var(--border);border-radius:14px;padding:14px 6px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text);transition:.15s;}
+    .media-btn:active{background:var(--blue-light);border-color:var(--blue);}
+    .media-btn .mb-ico{font-size:1.8rem;}
+    .media-btn input{display:none;}
     .photo-previews{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
     .photo-previews img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid var(--border);}
+    .photo-previews video{width:100%;border-radius:10px;max-height:220px;display:block;}
     .gps-row{display:flex;gap:10px;align-items:center;background:#fff;border:2px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
     .gps-info{flex:1;font-size:.82rem;color:var(--text);}
     .gps-btn{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;}
@@ -724,11 +725,20 @@
       <div class="form-step" id="step3">
         <div class="step-title">Photo & Localisation</div>
         <div class="step-sub">Ajoutez une photo ou vidéo et votre position pour un traitement plus rapide</div>
-        <label class="form-label">Photo(s) / vidéo du problème (optionnel)</label>
-        <div class="photo-zone">
-          <div class="pz-ico">📷</div>
-          <div class="pz-txt">Appuyez pour prendre une photo, filmer ou choisir dans la galerie</div>
-          <input type="file" accept="image/*,video/*" multiple onchange="handleFormPhotos(this)"/>
+        <label class="form-label">Photo / vidéo du problème (optionnel)</label>
+        <div class="media-btns">
+          <label class="media-btn">
+            <span class="mb-ico">📷</span>Photo
+            <input type="file" accept="image/*" capture="environment" onchange="handleFormPhotos(this)">
+          </label>
+          <label class="media-btn">
+            <span class="mb-ico">🎬</span>Vidéo
+            <input type="file" accept="video/*" capture="camcorder" onchange="handleFormPhotos(this)">
+          </label>
+          <label class="media-btn">
+            <span class="mb-ico">🖼️</span>Galerie
+            <input type="file" accept="image/*,video/*" multiple onchange="handleFormPhotos(this)">
+          </label>
         </div>
         <div class="photo-previews" id="formPhotoPrev"></div>
         <label class="form-label" style="margin-top:14px">Localisation GPS</label>
@@ -950,16 +960,15 @@ function getFormGPS(){
   },()=>{info.innerHTML='<span class="gps-err">Échec — cliquez sur la carte</span>';});
 }
 function handleFormPhotos(input){
-  const files=Array.from(input.files);formData.photos=[];
-  const prev=document.getElementById('formPhotoPrev');prev.innerHTML='';
-  files.slice(0,4).forEach(f=>{
+  const files=Array.from(input.files);
+  const prev=document.getElementById('formPhotoPrev');
+  const remaining=4-formData.photos.length;
+  files.slice(0,remaining).forEach(f=>{
     if(f.type.startsWith('video/')){
       const url=URL.createObjectURL(f);
       const vid=document.createElement('video');
       vid.src=url;vid.controls=true;vid.muted=true;vid.playsInline=true;
-      vid.style.cssText='width:100%;border-radius:10px;margin-top:6px;max-height:220px;display:block;';
       prev.appendChild(vid);
-      // Extraire la première frame comme thumbnail pour Firebase
       vid.addEventListener('loadeddata',()=>{vid.currentTime=0.1;},{once:true});
       vid.addEventListener('seeked',()=>{
         const c=document.createElement('canvas');
@@ -973,6 +982,7 @@ function handleFormPhotos(input){
       r.readAsDataURL(f);
     }
   });
+  input.value='';
 }
 
 // ========================= FORM WIZARD =========================
