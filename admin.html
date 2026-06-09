@@ -774,7 +774,7 @@ function _afficherDolTable(data){
     <tr>
       <td style="font-size:.75rem;color:var(--gray)">${d.ref||'#'+d.id}</td>
       <td>${DOL_CATS[d.cat]?.ico||'⚠️'} <span style="font-size:.8rem;font-weight:600">${DOL_CATS[d.cat]?.label||d.cat||'—'}</span></td>
-      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.titre||d.desc||''}">${d.titre||d.desc||'—'}</td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.titre||d.desc||''}">${d.photo?'📷 ':''}${d.titre||d.desc||'—'}</td>
       <td class="td-name">${d.citoyen||'—'}</td>
       <td>📍 ${d.quartier||'—'}</td>
       <td>${DOL_URG[d.urgence]?.ico||'—'} ${DOL_URG[d.urgence]?.label||d.urgence||'—'}</td>
@@ -796,11 +796,16 @@ function updateDolStatus(id,val){
   updateNavBadges();showToast(`✅ Doléance mise à jour : ${val.replace('_',' ')}`);
 }
 function voirDoleance(id){
-  const d=getDoleances().find(x=>x.id===id);
+  const src=_dolData.length?_dolData:getDoleances();
+  const d=src.find(x=>String(x.id)===String(id));
   if(!d) return;
+  const photoInfo=d.photo?`(${Math.round(d.photo.length/1024)}kb)`:'absent';
+  console.log('voirDoleance photo:',photoInfo);
   document.getElementById('modalTitle').textContent=`📝 Doléance ${d.ref||'#'+d.id}`;
   document.getElementById('modalBody').innerHTML=`
-    ${d.photo?`<img src="${d.photo}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:200px;object-fit:cover" alt="Photo de la doléance">`:''}
+    ${d.photo
+      ?`<img src="${d.photo}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:200px;object-fit:cover" alt="Photo">`
+      :`<div style="background:#f8fafc;border:1.5px dashed var(--border);border-radius:10px;padding:16px;text-align:center;color:var(--gray);margin-bottom:14px;font-size:.85rem">📷 Aucune photo — soumise sans photo ou avant la mise à jour</div>`}
     <div class="detail-row"><strong>Catégorie</strong>${DOL_CATS[d.cat]?.ico||'⚠️'} ${DOL_CATS[d.cat]?.label||d.cat||'—'}</div>
     <div class="detail-row"><strong>Titre</strong>${d.titre||'—'}</div>
     <div class="detail-row" style="align-items:flex-start"><strong>Description</strong><span>${d.desc||'—'}</span></div>
