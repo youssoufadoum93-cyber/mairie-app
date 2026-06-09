@@ -952,15 +952,31 @@ window.addEventListener('load',()=>{
     // Écouter doléances des citoyens
     fbDb.ref('doleances').on('value',snap=>{
       const v=snap.val();
-      if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('doleances',JSON.stringify(l));updateNavBadges();}
+      if(v){
+        const l=Object.values(v).sort((a,b)=>b.id-a.id);
+        const avant=JSON.parse(localStorage.getItem('doleances')||'[]').length;
+        localStorage.setItem('doleances',JSON.stringify(l));
+        updateNavBadges();
+        if(l.length>avant) showToast(`📝 Nouvelle doléance reçue d'un citoyen !`);
+      }
     });
     // Écouter alertes
     fbDb.ref('alertes').on('value',snap=>{
       const v=snap.val();
       if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('alertes',JSON.stringify(l));if(document.getElementById('alertes_admin').classList.contains('active'))renderAlertesAdmin();}
     });
-    showToast('🟢 Firebase connecté — synchronisation en temps réel');
-  }catch(e){console.warn('Firebase non disponible:',e);}
+    // Indicateur connexion dans la topbar
+    const fb=document.createElement('span');
+    fb.id='fbStatus';fb.style.cssText='font-size:.72rem;background:#dcfce7;color:#16a34a;padding:3px 8px;border-radius:20px;font-weight:700;';
+    fb.textContent='🟢 En ligne';
+    document.querySelector('.topbar-right').prepend(fb);
+  }catch(e){
+    console.warn('Firebase non disponible:',e);
+    const fb=document.createElement('span');
+    fb.style.cssText='font-size:.72rem;background:#fef2f2;color:#dc2626;padding:3px 8px;border-radius:20px;font-weight:700;';
+    fb.textContent='🔴 Hors ligne';
+    document.querySelector('.topbar-right').prepend(fb);
+  }
 });
 function fbSync(path,data){
   if(!fbDb)return;
@@ -973,7 +989,7 @@ saveAlertes=function(d){__origSaveAlertes(d);fbSync('alertes',d);};
 const __origSaveSigs=saveSigs;
 saveSigs=function(d){__origSaveSigs(d);fbSync('signalements',d);};
 const __origSaveDems=saveDems;
-saveDems=function(d){__origSaveDems(d);};
+saveDems=function(d){__origSaveDems(d);fbSync('demandes',d);};;
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>

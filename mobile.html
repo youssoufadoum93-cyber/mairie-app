@@ -1157,10 +1157,19 @@ const FB_CONFIG={
 let fbDb=null;
 let _fbAlerteCount=0;
 
+function setFbIndicator(online){
+  let el=document.getElementById('fbDot');
+  if(!el){el=document.createElement('div');el.id='fbDot';el.style.cssText='position:fixed;top:calc(var(--safe-top)+6px);right:10px;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:10px;z-index:999;';document.getElementById('app').appendChild(el);}
+  el.style.background=online?'#dcfce7':'#fef2f2';
+  el.style.color=online?'#16a34a':'#dc2626';
+  el.textContent=online?'🟢 En ligne':'🔴 Hors ligne';
+}
+
 function initFirebase(){
   try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     fbDb=firebase.database();
+    setFbIndicator(true);
 
     // Écouter alertes en temps réel
     fbDb.ref('alertes').on('value',snap=>{
@@ -1192,7 +1201,7 @@ function initFirebase(){
       }
     });
 
-  }catch(e){console.warn('Firebase non disponible:',e);}
+  }catch(e){console.warn('Firebase non disponible:',e);setFbIndicator(false);}
 }
 
 // Surcharge saveDols pour synchroniser Firebase
