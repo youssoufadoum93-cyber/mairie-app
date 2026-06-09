@@ -928,6 +928,54 @@ function showToast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3500);
 }
+
+// ============================= FIREBASE SYNC =============================
+const FB_CONFIG={
+  apiKey:"AIzaSyCaAWYZhxLWkX6NkQA9gzekguNVC0NFkXQ",
+  authDomain:"mairie-app-1f27a.firebaseapp.com",
+  databaseURL:"https://mairie-app-1f27a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"mairie-app-1f27a",
+  storageBucket:"mairie-app-1f27a.firebasestorage.app",
+  messagingSenderId:"319201016941",
+  appId:"1:319201016941:web:643170e86296ffe8491364"
+};
+let fbDb=null;
+window.addEventListener('load',()=>{
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    fbDb=firebase.database();
+    // Écouter signalements en temps réel
+    fbDb.ref('signalements').on('value',snap=>{
+      const v=snap.val();
+      if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('signalements',JSON.stringify(l));updateNavBadges();if(document.getElementById('signalements').classList.contains('active'))renderSigTable();}
+    });
+    // Écouter doléances des citoyens
+    fbDb.ref('doleances').on('value',snap=>{
+      const v=snap.val();
+      if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('doleances',JSON.stringify(l));updateNavBadges();}
+    });
+    // Écouter alertes
+    fbDb.ref('alertes').on('value',snap=>{
+      const v=snap.val();
+      if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('alertes',JSON.stringify(l));if(document.getElementById('alertes_admin').classList.contains('active'))renderAlertesAdmin();}
+    });
+    showToast('🟢 Firebase connecté — synchronisation en temps réel');
+  }catch(e){console.warn('Firebase non disponible:',e);}
+});
+function fbSync(path,data){
+  if(!fbDb)return;
+  const o={};data.forEach(x=>{o[x.id]=x;});
+  fbDb.ref(path).set(o).catch(e=>console.warn('Sync erreur:',e));
+}
+// Surcharge des fonctions de sauvegarde pour synchroniser Firebase
+const __origSaveAlertes=saveAlertes;
+saveAlertes=function(d){__origSaveAlertes(d);fbSync('alertes',d);};
+const __origSaveSigs=saveSigs;
+saveSigs=function(d){__origSaveSigs(d);fbSync('signalements',d);};
+const __origSaveDems=saveDems;
+saveDems=function(d){__origSaveDems(d);};
 </script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 </body>
 </html>
