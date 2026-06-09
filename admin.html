@@ -906,6 +906,13 @@ function updateDemStatus(id,val){
   const d=getDems();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveDems(d);}
   updateNavBadges();showToast(`✅ Statut demande mis à jour`);
 }
+function saveDemComment(id){
+  const val=(document.getElementById('demCommentInput')?.value||'').trim();
+  const d=getDems();const s=d.find(x=>x.id===id);
+  if(s){s.commentaire=val;saveDems(d);}
+  if(fbDb) fbDb.ref('demandes/'+id+'/commentaire').set(val).catch(()=>{});
+  showToast('💾 Commentaire enregistré');
+}
 
 // ============================= REVENUS =============================
 function renderRevenus(){
@@ -1060,14 +1067,22 @@ function openSigModal(id){
     </div>`;
   document.getElementById('modal').classList.add('show');
 }
+const DEM_CHAMPS_LABELS={nom:'Nom de famille',prenom:'Prénom(s)',date_naissance:'Date de naissance',lieu_naissance:'Lieu de naissance',nom_pere:'Nom du père',nom_mere:'Nom de la mère',nom_epoux:'Nom de l\'époux',prenom_epoux:'Prénom de l\'époux',nom_epouse:'Nom de l\'épouse',prenom_epouse:'Prénom de l\'épouse',date_mariage:'Date du mariage',nom_defunt:'Nom du défunt',prenom_defunt:'Prénom du défunt',date_deces:'Date du décès',adresse:'Adresse complète',motif:'Motif de la demande',type_doc:'Type de document à légaliser',copies:'Nombre de copies'};
+const DEM_RETRAIT={guichet:'Retrait au guichet',domicile:'Livraison à domicile',agent:'Remis par agent'};
 function openDemModal(id){
   const d=getDems().find(x=>x.id===id);if(!d)return;
-  document.getElementById('modalTitle').textContent=`📋 Demande #${d.id}`;
+  const donnees=d.donnees||{};
+  const champsHtml=Object.entries(donnees).filter(([,v])=>v).map(([k,v])=>`<div class="detail-row"><strong>${DEM_CHAMPS_LABELS[k]||k}</strong>${v}</div>`).join('');
+  document.getElementById('modalTitle').textContent=`${d.ico||'📋'} Demande ${d.ref||'#'+d.id}`;
   document.getElementById('modalBody').innerHTML=`
-    <div class="detail-row"><strong>Citoyen</strong>${d.citoyen}</div>
-    <div class="detail-row"><strong>Téléphone</strong>${d.tel}</div>
-    <div class="detail-row"><strong>Document</strong>📄 ${d.type_doc}</div>
-    <div class="detail-row"><strong>Date demande</strong>📅 ${d.date}</div>
+    <div style="background:var(--blue-light);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.85rem;color:var(--blue);font-weight:600">${d.ico||'📄'} ${d.label||d.type_doc||'—'}</div>
+    <div class="detail-row"><strong>Citoyen</strong>${d.citoyen||'—'}</div>
+    <div class="detail-row"><strong>Téléphone</strong>📞 ${d.tel||'—'}</div>
+    <div class="detail-row"><strong>Date demande</strong>📅 ${d.date||'—'}</div>
+    <div class="detail-row"><strong>Mode de retrait</strong>🏢 ${DEM_RETRAIT[d.retrait]||d.retrait||'—'}</div>
+    ${champsHtml
+      ?`<div style="border-top:1.5px solid var(--border);margin:12px 0 8px;font-size:.82rem;font-weight:700;color:var(--text)">Informations fournies par le citoyen :</div>${champsHtml}`
+      :''}
     <div class="detail-row"><strong>Statut</strong><span class="badge badge-${d.statut==='prêt'||d.statut==='livré'?'résolu':d.statut}">${d.statut}</span></div>
     <div class="detail-row"><strong>Agent</strong>${d.agent||'<span style="color:var(--gray)">Non assigné</span>'}</div>
     ${d.commentaire?`<div class="detail-row"><strong>Commentaire</strong>${d.commentaire}</div>`:''}
@@ -1075,6 +1090,11 @@ function openDemModal(id){
       <div style="font-size:.82rem;font-weight:600;margin-bottom:8px">Mettre à jour le statut :</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${['en_attente','en_cours','prêt','livré'].map(st=>`<button class="action-btn ${d.statut===st?'blue':''}" onclick="updateDemStatus(${d.id},'${st}');closeModal()">${st}</button>`).join('')}
+      </div>
+      <div style="margin-top:12px">
+        <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">Commentaire agent :</div>
+        <textarea id="demCommentInput" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:.82rem;resize:vertical;min-height:60px" placeholder="Notes internes...">${d.commentaire||''}</textarea>
+        <button class="action-btn blue" style="margin-top:6px;width:100%" onclick="saveDemComment(${d.id})">💾 Enregistrer commentaire</button>
       </div>
     </div>`;
   document.getElementById('modal').classList.add('show');
