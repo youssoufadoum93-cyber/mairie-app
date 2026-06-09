@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" translate="no">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="google" content="notranslate"/>
+  <meta http-equiv="content-language" content="fr"/>
   <title>Tableau de Bord Admin — Mairie Numérique</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
@@ -340,7 +342,7 @@
           </div>
         </div>
         <table>
-          <thead><tr><th>#</th><th>Type</th><th>Description</th><th>Quartier</th><th>Date</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
+          <thead><tr><th>N°</th><th>Type</th><th>Description</th><th>Quartier</th><th>Date</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
           <tbody id="sigTableBody"></tbody>
         </table>
         <div class="pagination"><span id="sigPagInfo">—</span><div class="page-btns" id="sigPagBtns"></div></div>
@@ -370,7 +372,7 @@
           </div>
         </div>
         <table>
-          <thead><tr><th>#</th><th>Citoyen</th><th>Document</th><th>Date demande</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
+          <thead><tr><th>N°</th><th>Citoyen</th><th>Document</th><th>Date demande</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
           <tbody id="demTableBody"></tbody>
         </table>
         <div class="pagination"><span id="demPagInfo">—</span><div class="page-btns"></div></div>
