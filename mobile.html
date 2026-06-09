@@ -959,11 +959,11 @@ function getFormGPS(){
     if(mapForm){mapForm.setView([pos.coords.latitude,pos.coords.longitude],16);if(mapPin)mapForm.removeLayer(mapPin);mapPin=L.marker([pos.coords.latitude,pos.coords.longitude]).addTo(mapForm);}
   },()=>{info.innerHTML='<span class="gps-err">Échec — cliquez sur la carte</span>';});
 }
-function handleFormPhotos(input){
+async function handleFormPhotos(input){
   const files=Array.from(input.files);
   const prev=document.getElementById('formPhotoPrev');
   const remaining=4-formData.photos.length;
-  files.slice(0,remaining).forEach(f=>{
+  for(const f of files.slice(0,remaining)){
     if(f.type.startsWith('video/')){
       const url=URL.createObjectURL(f);
       const vid=document.createElement('video');
@@ -972,16 +972,17 @@ function handleFormPhotos(input){
       vid.addEventListener('loadeddata',()=>{vid.currentTime=0.1;},{once:true});
       vid.addEventListener('seeked',()=>{
         const c=document.createElement('canvas');
-        c.width=vid.videoWidth||320;c.height=vid.videoHeight||240;
-        c.getContext('2d').drawImage(vid,0,0);
-        formData.photos.push(c.toDataURL('image/jpeg',0.7));
+        const mw=320,mh=240,s=Math.min(mw/(vid.videoWidth||320),mh/(vid.videoHeight||240),1);
+        c.width=Math.round((vid.videoWidth||320)*s);c.height=Math.round((vid.videoHeight||240)*s);
+        c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
+        formData.photos.push(c.toDataURL('image/jpeg',0.65));
       },{once:true});
     } else {
-      const r=new FileReader();
-      r.onload=e=>{formData.photos.push(e.target.result);const img=document.createElement('img');img.src=e.target.result;prev.appendChild(img);};
-      r.readAsDataURL(f);
+      const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(f);});
+      const thumb=await _compressPhoto(dataUrl,300,0.65);
+      if(thumb){formData.photos.push(thumb);const img=document.createElement('img');img.src=thumb;prev.appendChild(img);}
     }
-  });
+  }
   input.value='';
 }
 
@@ -1118,8 +1119,7 @@ async function _envoyerDolFirebase(dol){
   }
   const btn=document.getElementById('btnEnvoyerDol');
   if(btn) btn.textContent='⏳ Envoi en cours...';
-  const thumb=await _compressPhoto(dol.photo,140,0.55);
-  const dolFb={id:dol.id,ref:dol.ref,cat:dol.cat,titre:dol.titre,desc:dol.desc,quartier:dol.quartier,urgence:dol.urgence,personnes:dol.personnes,statut:dol.statut,date:dol.date,citoyen:dol.citoyen,lat:dol.lat,lng:dol.lng,photo:thumb};
+  const dolFb={id:dol.id,ref:dol.ref,cat:dol.cat,titre:dol.titre,desc:dol.desc,quartier:dol.quartier,urgence:dol.urgence,personnes:dol.personnes,statut:dol.statut,date:dol.date,citoyen:dol.citoyen,lat:dol.lat,lng:dol.lng,photo:dol.photo||null};
   fbDb.ref('doleances/'+dol.id).set(dolFb)
     .then(()=>{
       if(btn){btn.textContent='✅ Envoyée à la mairie !';btn.disabled=true;btn.style.background='#16a34a';}
@@ -1762,7 +1762,7 @@ function verifierMisesAJourStatut(v){
 const __origSaveDols=saveDols;
 saveDols=function(d){
   __origSaveDols(d);
-  if(fbDb){const o={};d.forEach(x=>{o[x.id]={...x,photo:null};});fbDb.ref('doleances').set(o).catch(()=>{});}
+  if(fbDb){const o={};d.forEach(x=>{o[x.id]={...x};});fbDb.ref('doleances').set(o).catch(()=>{});}
 };
 </script>
 </body>
