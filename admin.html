@@ -1068,23 +1068,27 @@ function openSigModal(id){
   document.getElementById('modal').classList.add('show');
 }
 let _demModalPieces=[];
+let _demModalBlobUrls=[];
 const DEM_CHAMPS_LABELS={nom:'Nom de famille',prenom:'Prénom(s)',date_naissance:'Date de naissance',lieu_naissance:'Lieu de naissance',nom_pere:'Nom du père',nom_mere:'Nom de la mère',nom_epoux:'Nom de l\'époux',prenom_epoux:'Prénom de l\'époux',nom_epouse:'Nom de l\'épouse',prenom_epouse:'Prénom de l\'épouse',date_mariage:'Date du mariage',nom_defunt:'Nom du défunt',prenom_defunt:'Prénom du défunt',date_deces:'Date du décès',adresse:'Adresse complète',motif:'Motif de la demande',type_doc:'Type de document à légaliser',copies:'Nombre de copies'};
 const DEM_RETRAIT={guichet:'Retrait au guichet',domicile:'Livraison à domicile',agent:'Remis par agent'};
-function ouvrirPiece(i){
+function _pdfBlobUrl(data){
+  const bin=atob(data.split(',')[1]);
+  const bytes=new Uint8Array(bin.length);
+  for(let j=0;j<bin.length;j++) bytes[j]=bin.charCodeAt(j);
+  return URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+}
+function telechargerPiece(i){
   const p=_demModalPieces[i];if(!p)return;
-  if(p.type==='application/pdf'){
-    const bin=atob(p.data.split(',')[1]);
-    const bytes=new Uint8Array(bin.length);
-    for(let j=0;j<bin.length;j++) bytes[j]=bin.charCodeAt(j);
-    const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    window.open(url,'_blank');
-  } else {
-    const a=document.createElement('a');a.href=p.data;a.download=p.name||'piece';a.click();
-  }
+  const a=document.createElement('a');
+  a.href=p.type==='application/pdf'?(_demModalBlobUrls[i]||p.data):p.data;
+  a.download=p.name||('piece'+(i+1)+(p.type==='application/pdf'?'.pdf':''));
+  a.click();
 }
 function openDemModal(id){
   const d=getDems().find(x=>x.id===id);if(!d)return;
   _demModalPieces=Array.isArray(d.pieces)?d.pieces:[];
+  _demModalBlobUrls.forEach(u=>u&&URL.revokeObjectURL(u));
+  _demModalBlobUrls=_demModalPieces.map(p=>p.type==='application/pdf'?_pdfBlobUrl(p.data):null);
   const donnees=d.donnees||{};
   const champsHtml=Object.entries(donnees).filter(([,v])=>v).map(([k,v])=>`<div class="detail-row"><strong>${DEM_CHAMPS_LABELS[k]||k}</strong>${v}</div>`).join('');
   document.getElementById('modalTitle').textContent=`${d.ico||'📋'} Demande ${d.ref||'#'+d.id}`;
@@ -1101,8 +1105,17 @@ function openDemModal(id){
       ?`<div style="border-top:1.5px solid var(--border);margin:12px 0 8px;font-size:.82rem;font-weight:700;color:var(--text)">Pièces justificatives (${_demModalPieces.length}) :</div>
         <div style="display:flex;flex-direction:column;gap:8px">
         ${_demModalPieces.map((p,i)=>p.type==='application/pdf'
-          ?`<button class="action-btn blue" style="width:100%;justify-content:flex-start;gap:8px" onclick="ouvrirPiece(${i})">📄 ${p.name||'Pièce '+(i+1)} — Ouvrir le PDF</button>`
-          :`<div><img src="${p.data}" style="width:100%;border-radius:8px;max-height:180px;object-fit:cover;margin-bottom:2px"><div style="font-size:.75rem;color:var(--gray)">${p.name||'Image '+(i+1)}</div></div>`
+          ?`<div style="margin-bottom:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:.82rem;font-weight:600">📄 ${p.name||'Pièce '+(i+1)}</span>
+                <button class="action-btn blue" onclick="telechargerPiece(${i})">⬇️ Télécharger</button>
+              </div>
+              <iframe src="${_demModalBlobUrls[i]}" style="width:100%;height:420px;border:1.5px solid var(--border);border-radius:10px" title="${p.name||'PDF'}"></iframe>
+            </div>`
+          :`<div style="margin-bottom:8px">
+              <img src="${p.data}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover;margin-bottom:2px">
+              <div style="font-size:.75rem;color:var(--gray)">${p.name||'Image '+(i+1)}</div>
+            </div>`
         ).join('')}
         </div>`
       :`<div style="border-top:1.5px solid var(--border);margin:12px 0 8px;font-size:.82rem;color:var(--gray)">📎 Aucune pièce jointe</div>`}
@@ -1127,7 +1140,11 @@ function assignDemAgent(id){openDemModal(id);}
 function assignSigAgent(id,agent){
   const d=getSigs();const s=d.find(x=>x.id===id);if(s&&agent){s.agent=agent;saveSigs(d);renderSigTable();showToast(`✅ ${agent} assigné au signalement`);}
 }
-function closeModal(){document.getElementById('modal').classList.remove('show');}
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+  _demModalBlobUrls.forEach(u=>u&&URL.revokeObjectURL(u));
+  _demModalBlobUrls=[];
+}
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 });
