@@ -8,6 +8,7 @@
   <title>Tableau de Bord Admin — Mairie Numérique</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -211,6 +212,23 @@
     .toast{position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 22px;border-radius:10px;font-size:.86rem;font-weight:600;z-index:700;transform:translateY(100px);opacity:0;transition:.3s;}
     .toast.show{transform:translateY(0);opacity:1;}
 
+    /* ===== LOGIN OVERLAY ===== */
+    #loginOverlay{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%);z-index:9999;display:flex;align-items:center;justify-content:center;}
+    .login-card{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:400px;box-shadow:0 25px 60px rgba(0,0,0,.4);}
+    .login-logo{text-align:center;margin-bottom:28px;}
+    .login-logo h1{font-size:1.4rem;font-weight:800;color:#0f172a;margin-top:10px;}
+    .login-logo p{font-size:.85rem;color:var(--gray);margin-top:4px;}
+    .login-field{margin-bottom:16px;}
+    .login-field label{display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:6px;}
+    .login-field input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.9rem;outline:none;transition:.2s;font-family:inherit;}
+    .login-field input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+    .login-btn{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;}
+    .login-btn:hover{background:var(--blue-dark);}
+    .login-btn:disabled{opacity:.6;cursor:not-allowed;}
+    .login-error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:.83rem;margin-top:12px;display:none;}
+    .login-setup{text-align:center;margin-top:16px;font-size:.8rem;color:var(--gray);}
+    .login-setup a{color:var(--blue);cursor:pointer;text-decoration:underline;font-weight:600;}
+
     /* RESPONSIVE */
     @media(max-width:900px){
       .charts-grid{grid-template-columns:1fr;}
@@ -227,6 +245,41 @@
   </style>
 </head>
 <body>
+
+<!-- ===== LOGIN OVERLAY ===== -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div style="font-size:2.5rem">🏛️</div>
+      <h1>Mairie Numérique</h1>
+      <p>Accès réservé aux administrateurs</p>
+    </div>
+    <div id="loginForm">
+      <div class="login-field">
+        <label>Adresse email</label>
+        <input type="email" id="loginEmail" placeholder="admin@mairie.fr" onkeydown="if(event.key==='Enter')loginAdmin()"/>
+      </div>
+      <div class="login-field">
+        <label>Mot de passe</label>
+        <input type="password" id="loginPwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginAdmin()"/>
+      </div>
+      <button class="login-btn" onclick="loginAdmin()" id="loginBtn">🔐 Se connecter</button>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-setup" id="setupLink"><a onclick="checkAndShowSetup()">Premier accès ? Créer le compte admin</a></div>
+    </div>
+    <div id="setupForm" style="display:none">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:.83rem;color:#1e40af">
+        <strong>Premier accès</strong> — Aucun compte admin n'existe encore. Créez le compte principal.
+      </div>
+      <div class="login-field"><label>Email admin</label><input type="email" id="setupEmail" placeholder="admin@mairie.fr"/></div>
+      <div class="login-field"><label>Mot de passe (min. 6 caractères)</label><input type="password" id="setupPwd" placeholder="Choisir un mot de passe"/></div>
+      <div class="login-field"><label>Confirmer</label><input type="password" id="setupPwd2" placeholder="Répéter le mot de passe" onkeydown="if(event.key==='Enter')setupFirstAdmin()"/></div>
+      <button class="login-btn" onclick="setupFirstAdmin()" style="background:#16a34a">✅ Créer le compte admin</button>
+      <div class="login-error" id="setupError"></div>
+      <div class="login-setup"><a onclick="document.getElementById('setupForm').style.display='none';document.getElementById('loginForm').style.display='block';document.getElementById('setupLink').style.display='block'">← Retour connexion</a></div>
+    </div>
+  </div>
+</div>
 
 <!-- ===== SIDEBAR ===== -->
 <aside class="sidebar" id="sidebar">
@@ -246,15 +299,18 @@
     <div class="nav-item" onclick="showSection('alertes_admin',this)"><span class="n-ico">📢</span> Alertes & Actualités</div>
     <div class="nav-label">Équipe</div>
     <div class="nav-item" onclick="showSection('agents',this)"><span class="n-ico">👥</span> Agents</div>
+    <div class="nav-label">Système</div>
+    <div class="nav-item" onclick="showSection('comptes',this);loadComptes()"><span class="n-ico">🔑</span> Comptes admin</div>
   </nav>
   <div class="sidebar-footer">
-    <div class="agent-name">🟢 Administrateur</div>
-    <div class="agent-role">Super Admin · Mairie centrale</div>
+    <div class="agent-name">🟢 <span id="adminDisplayName">Administrateur</span></div>
+    <div class="agent-role" id="adminEmailDisplay" style="opacity:.6;margin-top:2px;font-size:.72rem">Mairie centrale</div>
     <div style="margin-top:10px">
       <a href="index.html" style="color:var(--sidebar-text);font-size:.75rem;text-decoration:none;">← Retour accueil</a>
       &nbsp;·&nbsp;
       <a href="citoyen.html" style="color:var(--sidebar-text);font-size:.75rem;text-decoration:none;">App citoyenne</a>
     </div>
+    <button onclick="logoutAdmin()" style="margin-top:10px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);color:#fca5a5;padding:7px 12px;border-radius:8px;font-size:.75rem;cursor:pointer;width:100%;text-align:left;font-weight:600">🚪 Déconnexion</button>
   </div>
 </aside>
 
@@ -273,7 +329,7 @@
         <button class="tb-btn" onclick="showSection('signalements',document.querySelector('.nav-item:nth-child(2)'))">🔔<span id="notifCount" style="margin-left:4px;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.7rem;font-weight:700"></span></button>
         <div class="notif-dot" id="notifDot" style="display:none"></div>
       </div>
-      <div class="avatar">A</div>
+      <div class="avatar" id="adminAvatar">A</div>
     </div>
   </div>
 
@@ -582,8 +638,49 @@
       <div class="agents-grid" id="agentsGrid"></div>
     </div>
 
+    <!-- =========== COMPTES ADMIN =========== -->
+    <div id="comptes" class="section">
+      <div class="section-head">
+        <div><h2>🔑 Comptes Administrateurs</h2><p>Gérer les accès au tableau de bord</p></div>
+        <button class="tb-btn primary" onclick="document.getElementById('addAccountModal').classList.add('show');document.getElementById('addAccError').style.display='none'">➕ Nouveau compte</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Email</th><th>Rôle</th><th>Créé le</th><th>Créé par</th><th>Actions</th></tr></thead>
+          <tbody id="comptesTableBody">
+            <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray)">Cliquez sur "Comptes admin" pour charger...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
+
+<!-- MODAL CRÉER COMPTE ADMIN -->
+<div class="modal-overlay" id="addAccountModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔑 Créer un compte administrateur</h3>
+      <button class="close-modal" onclick="document.getElementById('addAccountModal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><div class="form-label">Email</div><input type="email" id="newAccEmail" class="form-input" placeholder="admin@mairie.fr"/></div>
+      <div class="form-group"><div class="form-label">Mot de passe (min. 6 caractères)</div><input type="password" id="newAccPwd" class="form-input" placeholder="Choisir un mot de passe"/></div>
+      <div class="form-group"><div class="form-label">Rôle</div>
+        <select id="newAccRole" class="filter-select" style="width:100%;padding:10px">
+          <option value="admin">Admin</option>
+          <option value="superadmin">Super Admin</option>
+        </select>
+      </div>
+      <div class="login-error" id="addAccError"></div>
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+        <button class="btn-form btn-secondary" onclick="document.getElementById('addAccountModal').classList.remove('show')">Annuler</button>
+        <button class="btn-form btn-primary" onclick="createAdminUser()">✅ Créer le compte</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL -->
 <div class="modal-overlay" id="modal">
@@ -1493,6 +1590,144 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),3500);
 }
 
+// ============================= AUTH =============================
+let fbAuth=null, currentAdmin=null;
+
+function initAuth(){
+  if(!fbAuth) return;
+  fbAuth.onAuthStateChanged(user=>{
+    if(user){
+      currentAdmin=user;
+      document.getElementById('loginOverlay').style.display='none';
+      const name=user.email.split('@')[0];
+      document.getElementById('adminDisplayName').textContent=name;
+      document.getElementById('adminEmailDisplay').textContent=user.email;
+      document.getElementById('adminAvatar').textContent=user.email[0].toUpperCase();
+    } else {
+      currentAdmin=null;
+      document.getElementById('loginOverlay').style.display='flex';
+    }
+  });
+}
+
+async function loginAdmin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pwd=document.getElementById('loginPwd').value;
+  const errEl=document.getElementById('loginError');
+  const btn=document.getElementById('loginBtn');
+  if(!email||!pwd){errEl.style.display='block';errEl.textContent='Veuillez remplir tous les champs.';return;}
+  btn.textContent='⏳ Connexion…';btn.disabled=true;
+  try{
+    await fbAuth.signInWithEmailAndPassword(email,pwd);
+    errEl.style.display='none';
+    document.getElementById('loginEmail').value='';
+    document.getElementById('loginPwd').value='';
+  }catch(e){
+    errEl.style.display='block';
+    errEl.textContent=['auth/wrong-password','auth/user-not-found','auth/invalid-credential','auth/invalid-email'].includes(e.code)
+      ?'❌ Email ou mot de passe incorrect.'
+      :'❌ '+e.message;
+  }finally{btn.textContent='🔐 Se connecter';btn.disabled=false;}
+}
+
+async function logoutAdmin(){
+  if(!confirm('Se déconnecter du tableau de bord ?')) return;
+  await fbAuth.signOut();
+}
+
+async function checkAndShowSetup(){
+  if(!fbDb){alert('Firebase non disponible');return;}
+  try{
+    const snap=await fbDb.ref('admins').once('value');
+    if(!snap.val()||Object.keys(snap.val()).length===0){
+      document.getElementById('loginForm').style.display='none';
+      document.getElementById('setupForm').style.display='block';
+      document.getElementById('setupLink').style.display='none';
+    } else {
+      document.getElementById('loginError').style.display='block';
+      document.getElementById('loginError').textContent='Des comptes existent déjà. Connectez-vous avec vos identifiants.';
+    }
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+async function setupFirstAdmin(){
+  const email=document.getElementById('setupEmail').value.trim();
+  const pwd=document.getElementById('setupPwd').value;
+  const pwd2=document.getElementById('setupPwd2').value;
+  const errEl=document.getElementById('setupError');
+  if(!email||!pwd){errEl.style.display='block';errEl.textContent='Remplissez tous les champs.';return;}
+  if(pwd!==pwd2){errEl.style.display='block';errEl.textContent='Les mots de passe ne correspondent pas.';return;}
+  if(pwd.length<6){errEl.style.display='block';errEl.textContent='Mot de passe trop court (min. 6 caractères).';return;}
+  try{
+    const cred=await fbAuth.createUserWithEmailAndPassword(email,pwd);
+    await fbDb.ref('admins/'+cred.user.uid).set({email,role:'superadmin',createdAt:new Date().toISOString().slice(0,10),createdBy:'setup'});
+    errEl.style.display='none';
+    showToast('✅ Compte créé — Vous êtes connecté !');
+  }catch(e){errEl.style.display='block';errEl.textContent='❌ '+e.message;}
+}
+
+async function loadComptes(){
+  if(!fbDb||!currentAdmin) return;
+  const tbody=document.getElementById('comptesTableBody');
+  tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px">⏳ Chargement…</td></tr>';
+  try{
+    const snap=await fbDb.ref('admins').once('value');
+    const v=snap.val();
+    if(!v||Object.keys(v).length===0){
+      tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray)">Aucun compte trouvé</td></tr>';
+      return;
+    }
+    tbody.innerHTML=Object.entries(v).map(([uid,a])=>`
+      <tr>
+        <td><strong>${a.email}</strong>${uid===currentAdmin?.uid?' <span style="background:#eff6ff;color:var(--blue);font-size:.7rem;padding:2px 8px;border-radius:10px;font-weight:700">Vous</span>':''}</td>
+        <td><span class="badge" style="background:${a.role==='superadmin'?'#eff6ff':'#f0fdf4'};color:${a.role==='superadmin'?'var(--blue)':'var(--green)'};">${a.role||'admin'}</span></td>
+        <td style="font-size:.82rem;color:var(--gray)">${a.createdAt||'—'}</td>
+        <td style="font-size:.82rem;color:var(--gray)">${a.createdBy||'—'}</td>
+        <td>${uid!==currentAdmin?.uid?`<button class="action-btn" style="background:#fef2f2;color:#dc2626;border-color:#fecaca" onclick="deleteAdminUser('${uid}','${a.email.replace(/'/g,'&apos;')}')">🗑 Supprimer</button>`:''}</td>
+      </tr>`).join('');
+  }catch(e){tbody.innerHTML='<tr><td colspan="5" style="color:#dc2626;padding:20px">❌ Erreur : '+e.message+'</td></tr>';}
+}
+
+async function createAdminUser(){
+  const email=document.getElementById('newAccEmail').value.trim();
+  const pwd=document.getElementById('newAccPwd').value;
+  const role=document.getElementById('newAccRole').value;
+  const errEl=document.getElementById('addAccError');
+  if(!email||!pwd){errEl.style.display='block';errEl.textContent='Remplissez tous les champs.';return;}
+  if(pwd.length<6){errEl.style.display='block';errEl.textContent='Mot de passe trop court (min. 6 caractères).';return;}
+  try{
+    // App secondaire pour ne pas déconnecter l'admin courant
+    let secondaryApp;
+    try{secondaryApp=firebase.app('AdminCreate');}catch(e){secondaryApp=firebase.initializeApp(FB_CONFIG,'AdminCreate');}
+    const secAuth=secondaryApp.auth();
+    const cred=await secAuth.createUserWithEmailAndPassword(email,pwd);
+    await fbDb.ref('admins/'+cred.user.uid).set({
+      email,role,
+      createdAt:new Date().toISOString().slice(0,10),
+      createdBy:currentAdmin?.email||'admin'
+    });
+    await secAuth.signOut();
+    document.getElementById('addAccountModal').classList.remove('show');
+    document.getElementById('newAccEmail').value='';
+    document.getElementById('newAccPwd').value='';
+    errEl.style.display='none';
+    showToast('✅ Compte créé : '+email);
+    loadComptes();
+  }catch(e){
+    errEl.style.display='block';
+    errEl.textContent=e.code==='auth/email-already-in-use'
+      ?'❌ Cet email est déjà utilisé.'
+      :'❌ '+e.message;
+  }
+}
+
+async function deleteAdminUser(uid,email){
+  if(!confirm(`Supprimer le compte admin :\n${email}\n\nL'utilisateur ne pourra plus se connecter.`)) return;
+  await fbDb.ref('admins/'+uid).remove();
+  showToast('🗑 Compte supprimé : '+email);
+  loadComptes();
+}
+
 // ============================= FIREBASE SYNC =============================
 const FB_CONFIG={
   apiKey:"AIzaSyCaAWYZhxLWkX6NkQA9gzekguNVC0NFkXQ",
@@ -1507,6 +1742,8 @@ let fbDb=null;
 try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     fbDb=firebase.database();
+    fbAuth=firebase.auth();
+    initAuth();
     // Nettoyer les anciennes entrées de démo (IDs 1-8) de Firebase
     [1,2,3,4,5,6,7,8].forEach(id=>fbDb.ref('signalements/'+id).remove().catch(()=>{}));
     // Écouter doléances des citoyens
