@@ -1521,6 +1521,16 @@ function renderTaxesMobile(){
       </div>
       ${t.statut==='en_attente'?`<button onclick="ouvrirPaiementTaxe(${t.id})" style="width:100%;margin-top:12px;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer">💳 Déclarer mon paiement</button>`:''}
       ${t.statut==='declaré'?`<div style="margin-top:10px;background:#fffbeb;border-radius:8px;padding:10px;font-size:.8rem;color:#92400e">⏳ Votre paiement est en cours de vérification par la mairie</div>`:''}
+      ${t.statut==='payé'?`<div style="margin-top:12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:#15803d;font-size:.88rem;margin-bottom:8px">✅ REÇU DE PAIEMENT OFFICIEL</div>
+        <div style="font-size:.78rem;color:#374151;line-height:1.7">
+          <div>📋 Réf. reçu : <strong>${t.recu||t.ref}</strong></div>
+          <div>📅 Validé le : <strong>${t.date_paiement||'—'}</strong></div>
+          <div>💳 Mode : <strong>${t.mode_paiement||'—'}</strong></div>
+          ${t.reference_paiement?`<div>🔖 Réf. transaction : <strong>${t.reference_paiement}</strong></div>`:''}
+        </div>
+        <button onclick="telechargerRecuMobile(${t.id})" style="width:100%;margin-top:10px;padding:10px;background:#15803d;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer">📥 Télécharger le reçu</button>
+      </div>`:''}
     </div>`;
   }).join('');
 }
@@ -1585,6 +1595,18 @@ function ouvrirPaiementTaxe(id){
 function fermerPaiementTaxe(){
   document.getElementById('taxePayOverlay').style.display='none';
   _taxePayId=null;
+}
+function telechargerRecuMobile(id){
+  const t=getTaxesMobile().find(x=>String(x.id)===String(id));
+  if(!t)return;
+  const user=getUser();
+  const txt=`REÇU DE PAIEMENT — MAIRIE NUMÉRIQUE\n${'='.repeat(42)}\nRéférence reçu : ${t.recu||t.ref}\nContribuable   : ${user?.nom||t.citoyen||'—'}\nTéléphone      : ${t.tel}\nType de taxe   : ${t.type_taxe}\nMontant        : ${t.montant.toLocaleString('fr-FR')} FCFA\nArrondissement : ${t.arrondissement||'—'}\nAnnée fiscale  : ${t.annee}\n${'='.repeat(42)}\nDate validation : ${t.date_paiement||'—'}\nMode paiement   : ${t.mode_paiement||'—'}\nRéf. transaction: ${t.reference_paiement||'—'}\n${'='.repeat(42)}\nDocument officiel — Mairie Numérique`;
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(t.recu||t.ref)+'.txt';
+  a.click();
+  showToast('📥 Reçu téléchargé');
 }
 function confirmerPaiementTaxe(){
   if(!_taxePayId)return;

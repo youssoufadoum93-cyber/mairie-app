@@ -1025,12 +1025,55 @@ function validerPaiement(id){
   t.date_paiement=new Date().toISOString().slice(0,10);
   saveTaxes(taxes);
   if(fbDb){
-    fbDb.ref('taxes/'+id+'/statut').set('payé').catch(()=>{});
-    fbDb.ref('taxes/'+id+'/date_paiement').set(t.date_paiement).catch(()=>{});
+    fbDb.ref('taxes/'+id).update({statut:'payé',date_paiement:t.date_paiement}).catch(()=>{});
   }
   renderRevenus();
   showToast('✅ Paiement validé — '+t.citoyen);
+  // Proposer envoi WhatsApp automatiquement
+  setTimeout(()=>{
+    if(confirm('✅ Paiement validé!\n\nEnvoyer le reçu par WhatsApp à '+t.citoyen+' ('+t.tel+') ?')){
+      envoyerRecuWhatsApp(id);
+    }
+  }, 400);
 }
+
+function _buildRecuTexte(t){
+  return `✅ *REÇU DE PAIEMENT — MAIRIE NUMÉRIQUE*\n`+
+    `━━━━━━━━━━━━━━━━━━━━━━━\n`+
+    `📋 Réf : *${t.recu}*\n`+
+    `👤 Contribuable : ${t.citoyen}\n`+
+    `📞 Téléphone : ${t.tel}\n`+
+    `━━━━━━━━━━━━━━━━━━━━━━━\n`+
+    `🏷️ Type : ${t.type_taxe}\n`+
+    `💰 Montant : *${t.montant.toLocaleString('fr-FR')} FCFA*\n`+
+    `📍 Arrondissement : ${t.arrondissement||'—'}\n`+
+    `📅 Année fiscale : ${t.annee}\n`+
+    `━━━━━━━━━━━━━━━━━━━━━━━\n`+
+    `✅ Date de validation : ${t.date_paiement||'—'}\n`+
+    `💳 Mode : ${t.mode_paiement||'—'}\n`+
+    `🔖 Réf. paiement : ${t.reference_paiement||'—'}\n`+
+    `━━━━━━━━━━━━━━━━━━━━━━━\n`+
+    `_Document officiel — Mairie Numérique_`;
+}
+
+function envoyerRecuWhatsApp(id){
+  const t=getTaxes().find(x=>String(x.id)===String(id));
+  if(!t){showToast('⚠️ Taxe introuvable');return;}
+  const msg=_buildRecuTexte(t);
+  // Formater le numéro : supprimer espaces/tirets, ajouter indicatif si nécessaire
+  let tel=String(t.tel).replace(/[\s\-().]/g,'');
+  if(!tel.startsWith('+')){
+    // Ajouter indicatif pays par défaut (Tchad +235)
+    if(tel.startsWith('0')) tel=tel.slice(1);
+    tel='235'+tel;
+  } else {
+    tel=tel.slice(1);
+  }
+  const url='https://wa.me/'+tel+'?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+  showToast('📱 WhatsApp ouvert pour '+t.citoyen);
+}
+
 function genererRecu(id){
   const t=getTaxes().find(x=>String(x.id)===String(id));
   if(!t)return;
@@ -1086,7 +1129,7 @@ function renderRevenus(){
       <td><span class="badge badge-${t.statut}">${t.statut==='payé'?'✅ Payé':t.statut==='declaré'?'🔔 Déclaré':'⏳ En attente'}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         ${t.statut==='declaré'?`<button class="action-btn blue" onclick="validerPaiement(${t.id})">✅ Valider</button>`:''}
-        ${t.statut==='payé'?`<button class="action-btn blue" onclick="genererRecu(${t.id})">📄 Reçu</button>`:''}
+        ${t.statut==='payé'?`<button class="action-btn blue" onclick="genererRecu(${t.id})">📄 Reçu</button><button class="action-btn" style="background:#25D366;color:#fff;border:none" onclick="envoyerRecuWhatsApp(${t.id})">📱 WhatsApp</button>`:''}
         ${t.statut==='en_attente'?`<button class="action-btn" onclick="showToast('📨 Relance envoyée à '+getTaxes().find(x=>x.id===${t.id})?.citoyen)">📨 Relancer</button>`:''}
       </td>
     </tr>`).join('');
