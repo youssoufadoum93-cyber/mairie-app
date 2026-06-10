@@ -520,6 +520,7 @@
       <div class="dol-tabs">
         <div class="dtab active" onclick="switchDemTab(this,'demander')">📄 Demander</div>
         <div class="dtab" onclick="switchDemTab(this,'suivi')">📋 Mes demandes</div>
+        <div class="dtab" onclick="switchDemTab(this,'taxes')" style="position:relative">💰 Taxes<span id="taxeBadgeMobile" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:8px">0</span></div>
       </div>
 
       <!-- CHOISIR DOCUMENT -->
@@ -577,6 +578,36 @@
           🔄 Actualiser les statuts
         </button>
         <div id="demListContainer"></div>
+      </div>
+
+      <!-- MES TAXES -->
+      <div id="dem-taxes" style="display:none">
+        <button onclick="actualiserTaxes()" style="width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:700;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">
+          🔄 Charger mes taxes
+        </button>
+        <div id="taxesListContainer"></div>
+      </div>
+    </div>
+
+    <!-- MODAL PAIEMENT TAXE -->
+    <div id="taxePayOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:flex-end;justify-content:center">
+      <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:1rem;font-weight:800">💳 Déclarer mon paiement</div>
+          <button onclick="fermerPaiementTaxe()" style="background:none;border:none;font-size:1.3rem;cursor:pointer">✕</button>
+        </div>
+        <div id="taxePayInfo" style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:16px;font-size:.85rem"></div>
+        <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">Mode de paiement</label>
+        <select id="taxePayMode" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;margin-bottom:14px">
+          <option value="Airtel Money">📱 Airtel Money</option>
+          <option value="Moov Money">📱 Moov Money</option>
+          <option value="Espèces">💵 Espèces au guichet</option>
+          <option value="Virement">🏦 Virement bancaire</option>
+        </select>
+        <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">Numéro de référence <span style="font-weight:400;color:#6b7280">(optionnel pour espèces)</span></label>
+        <input id="taxePayRef" type="text" placeholder="Ex: TXN-1234567890" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;margin-bottom:20px"/>
+        <button onclick="confirmerPaiementTaxe()" style="width:100%;padding:14px;background:#16a34a;color:#fff;border:none;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer">✅ Confirmer le paiement</button>
+        <div style="font-size:.75rem;color:#6b7280;text-align:center;margin-top:10px">La mairie validera votre paiement sous 24-48h</div>
       </div>
     </div>
 
@@ -1455,7 +1486,106 @@ function switchDemTab(el,mode){
   el.classList.add('active');
   document.getElementById('dem-demander').style.display=mode==='demander'?'block':'none';
   document.getElementById('dem-suivi').style.display=mode==='suivi'?'block':'none';
+  document.getElementById('dem-taxes').style.display=mode==='taxes'?'block':'none';
   if(mode==='suivi') renderDemandeList();
+  if(mode==='taxes'){renderTaxesMobile();actualiserTaxes();}
+}
+
+// ========================= TAXES MOBILE =========================
+let _taxePayId=null;
+function getTaxesMobile(){return JSON.parse(localStorage.getItem('mes_taxes')||'[]');}
+function saveTaxesMobile(d){localStorage.setItem('mes_taxes',JSON.stringify(d));}
+
+function renderTaxesMobile(){
+  const taxes=getTaxesMobile();
+  const c=document.getElementById('taxesListContainer');
+  if(!c)return;
+  if(!taxes.length){
+    c.innerHTML=`<div style="text-align:center;padding:32px 16px;color:var(--text-secondary)"><div style="font-size:2.5rem;margin-bottom:12px">💰</div><div style="font-weight:600;margin-bottom:6px">Aucune taxe trouvée</div><div style="font-size:.82rem">Tapez "Charger mes taxes" pour vérifier</div></div>`;
+    return;
+  }
+  const statut={en_attente:{ico:'⏳',bg:'#f1f5f9',col:'#475569',label:'En attente'},declaré:{ico:'🔔',bg:'#fef3c7',col:'#92400e',label:'Déclaré — en attente de validation'},payé:{ico:'✅',bg:'#f0fdf4',col:'#16a34a',label:'Payé'}};
+  c.innerHTML=taxes.map(t=>{
+    const s=statut[t.statut]||statut.en_attente;
+    return`<div class="card" style="margin-bottom:12px;padding:16px;border-left:4px solid ${s.col}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--blue)">${t.ref}</div>
+        <span style="font-size:.72rem;font-weight:700;background:${s.bg};color:${s.col};padding:3px 8px;border-radius:8px">${s.ico} ${s.label}</span>
+      </div>
+      <div style="font-size:.95rem;font-weight:700;margin-bottom:4px">${t.type_taxe}</div>
+      <div style="font-size:1.2rem;font-weight:800;color:#1e293b;margin-bottom:8px">${t.montant.toLocaleString('fr-FR')} FCFA</div>
+      <div style="font-size:.78rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:3px">
+        <span>📍 ${t.arrondissement||'—'} · Année ${t.annee}</span>
+        ${t.mode_paiement?`<span>💳 ${t.mode_paiement}${t.reference_paiement?' — Réf: '+t.reference_paiement:''}</span>`:''}
+        ${t.date_paiement?`<span>📅 Payé le ${t.date_paiement}</span>`:''}
+      </div>
+      ${t.statut==='en_attente'?`<button onclick="ouvrirPaiementTaxe(${t.id})" style="width:100%;margin-top:12px;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer">💳 Déclarer mon paiement</button>`:''}
+      ${t.statut==='declaré'?`<div style="margin-top:10px;background:#fffbeb;border-radius:8px;padding:10px;font-size:.8rem;color:#92400e">⏳ Votre paiement est en cours de vérification par la mairie</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function actualiserTaxes(){
+  const user=getUser();
+  if(!fbDb||!user||!user.tel){
+    renderTaxesMobile();
+    return;
+  }
+  fbDb.ref('taxes').once('value').then(snap=>{
+    const v=snap.val();
+    if(v){
+      const all=Object.values(v);
+      const mine=all.filter(t=>String(t.tel).replace(/\s/g,'')===String(user.tel).replace(/\s/g,''));
+      if(mine.length){
+        saveTaxesMobile(mine);
+        renderTaxesMobile();
+        const pending=mine.filter(t=>t.statut==='en_attente').length;
+        const badge=document.getElementById('taxeBadgeMobile');
+        if(badge){badge.style.display=pending?'inline':'none';badge.textContent=pending;}
+        showToast('✅ '+mine.length+' taxe(s) trouvée(s)');
+      } else {
+        saveTaxesMobile([]);
+        renderTaxesMobile();
+        showToast('ℹ️ Aucune taxe à votre numéro');
+      }
+    } else {
+      showToast('ℹ️ Aucune taxe enregistrée');
+    }
+  }).catch(e=>showToast('❌ Erreur : '+e.message));
+}
+
+function ouvrirPaiementTaxe(id){
+  _taxePayId=id;
+  const t=getTaxesMobile().find(x=>String(x.id)===String(id));
+  if(!t)return;
+  document.getElementById('taxePayInfo').innerHTML=`
+    <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">${t.type_taxe} — <span style="color:var(--blue)">${t.montant.toLocaleString('fr-FR')} FCFA</span></div>
+    <div style="font-size:.78rem;color:#6b7280">Réf: ${t.ref} · Année ${t.annee} · ${t.arrondissement||''}</div>`;
+  document.getElementById('taxePayRef').value='';
+  document.getElementById('taxePayOverlay').style.display='flex';
+}
+function fermerPaiementTaxe(){
+  document.getElementById('taxePayOverlay').style.display='none';
+  _taxePayId=null;
+}
+function confirmerPaiementTaxe(){
+  if(!_taxePayId)return;
+  if(!fbDb){showToast('⚠️ Firebase non connecté');return;}
+  const mode=document.getElementById('taxePayMode').value;
+  const ref=document.getElementById('taxePayRef').value.trim();
+  const today=new Date().toISOString().slice(0,10);
+  fbDb.ref('taxes/'+_taxePayId).update({
+    statut:'declaré',mode_paiement:mode,
+    reference_paiement:ref,date_paiement:today
+  }).then(()=>{
+    const taxes=getTaxesMobile();
+    const t=taxes.find(x=>String(x.id)===String(_taxePayId));
+    if(t){t.statut='declaré';t.mode_paiement=mode;t.reference_paiement=ref;t.date_paiement=today;}
+    saveTaxesMobile(taxes);
+    fermerPaiementTaxe();
+    renderTaxesMobile();
+    showToast('✅ Paiement déclaré — la mairie va vérifier sous 24-48h');
+  }).catch(e=>showToast('❌ Erreur : '+e.message));
 }
 
 function ouvrirFormDem(type){
@@ -1895,6 +2025,28 @@ function initFirebase(){
           .then(snap=>verifierMisesAJourStatut(snap.val()))
           .catch(()=>{});
       }
+    });
+
+    // Écouter les taxes en temps réel pour l'utilisateur connecté
+    fbDb.ref('taxes').on('value',snap=>{
+      const v=snap.val();
+      if(!v) return;
+      const user=getUser();
+      if(!user||!user.tel) return;
+      const mine=Object.values(v).filter(t=>String(t.tel).replace(/\s/g,'')===String(user.tel).replace(/\s/g,''));
+      if(!mine.length) return;
+      const local=getTaxesMobile();
+      const nowPaid=mine.filter(t=>t.statut==='payé');
+      const prevPaid=(local.filter(t=>t.statut==='payé')||[]).map(t=>t.id);
+      nowPaid.forEach(t=>{
+        if(!prevPaid.includes(t.id)) showToast('✅ Votre taxe '+t.ref+' a été validée!');
+      });
+      saveTaxesMobile(mine);
+      const pending=mine.filter(t=>t.statut==='en_attente').length;
+      const badge=document.getElementById('taxeBadgeMobile');
+      if(badge){badge.style.display=pending?'inline':'none';badge.textContent=pending;}
+      // Re-render si l'onglet taxes est actif
+      if(document.getElementById('dem-taxes')&&document.getElementById('dem-taxes').style.display==='block') renderTaxesMobile();
     });
 
   }catch(e){
