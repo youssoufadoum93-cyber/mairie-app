@@ -778,9 +778,7 @@ function chargerSignalementsFirebase(){
       return;
     }
     const fbSigs=Object.values(v).sort((a,b)=>b.id-a.id);
-    const refs=fbSigs.map(s=>s.ref||s.id).join(', ');
-    showToast('📥 '+fbSigs.length+' dans Firebase : '+refs.slice(0,80));
-    // Remplacer complètement le localStorage avec les données Firebase
+    // Remplacer complètement le localStorage avec les données Firebase (brut)
     const normalized=fbSigs.map(fb=>({
       id:fb.id,
       ref:fb.ref||'SIG-'+fb.id,
@@ -798,6 +796,12 @@ function chargerSignalementsFirebase(){
     localStorage.setItem('signalements',JSON.stringify(normalized));
     updateNavBadges();
     renderSigTable();
+    // Afficher debug en haut du tableau
+    const tbody=document.getElementById('sigTableBody');
+    const debugRow=`<tr style="background:#fef9c3"><td colspan="8" style="font-size:.75rem;padding:8px 12px;color:#92400e">
+      🔍 <strong>Firebase contient ${fbSigs.length} signalement(s) :</strong> ${fbSigs.map(s=>`[${s.ref||s.id} — ${s.citoyen||'?'} — ${s.statut||'?'}]`).join(' · ')}
+    </td></tr>`;
+    if(tbody) tbody.insertAdjacentHTML('afterbegin',debugRow);
   }).catch(e=>{
     showToast('❌ Erreur Firebase : '+e.message);
     renderSigTable();
