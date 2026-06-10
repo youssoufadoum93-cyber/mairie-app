@@ -887,7 +887,10 @@ function chargerDemandesFirebase(){
           agent:ex?ex.agent:null,
           commentaire:ex?ex.commentaire:(n.commentaire||''),
           donnees:n.donnees||{},
-          retrait:n.retrait||'guichet'
+          retrait:n.retrait||'guichet',
+          label:n.label||n.type_doc||n.type||'—',
+          ico:n.ico||'📄',
+          pieces:Array.isArray(n.pieces)?n.pieces:[]
         };
       }).sort((a,b)=>b.id-a.id);
       // Garder aussi les demandes locales demo
@@ -1232,7 +1235,9 @@ try{
             date:n.date, statut:ex?ex.statut:n.statut||'en_attente',
             agent:ex?ex.agent:null,
             commentaire:ex?ex.commentaire:'',
-            donnees:n.donnees||{}, retrait:n.retrait||'guichet'
+            donnees:n.donnees||{}, retrait:n.retrait||'guichet',
+            label:n.label||n.type_doc||n.type||'—', ico:n.ico||'📄',
+            pieces:Array.isArray(n.pieces)?n.pieces:[]
           };
         });
         const avant=existantes.length;
