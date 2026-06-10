@@ -611,6 +611,22 @@
       </div>
     </div>
 
+    <!-- ======= MODAL REÇU ======= -->
+    <div id="recuOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:20px;padding:24px 20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="font-size:3rem;margin-bottom:6px">✅</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#15803d">Paiement validé !</div>
+          <div style="font-size:.82rem;color:#6b7280;margin-top:4px">La mairie a confirmé votre paiement</div>
+        </div>
+        <div id="recuContent" style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:16px;font-size:.82rem;line-height:2;color:#1e293b"></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+          <button onclick="telechargerRecuDepuisModal()" style="width:100%;padding:13px;background:#15803d;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer">📥 Télécharger le reçu</button>
+          <button onclick="fermerRecuModal()" style="width:100%;padding:13px;background:#f1f5f9;color:#374151;border:none;border-radius:12px;font-size:.9rem;font-weight:600;cursor:pointer">Fermer</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ======= ALERTES ======= -->
     <div id="screen-alertes" class="screen">
       <div id="urgentBannerScreen"></div>
@@ -1596,6 +1612,32 @@ function fermerPaiementTaxe(){
   document.getElementById('taxePayOverlay').style.display='none';
   _taxePayId=null;
 }
+let _recuCourant=null;
+
+function afficherRecuModal(t){
+  _recuCourant=t;
+  const user=getUser();
+  document.getElementById('recuContent').innerHTML=`
+    <div style="font-weight:700;color:#15803d;margin-bottom:8px;font-size:.88rem">REÇU DE PAIEMENT OFFICIEL</div>
+    <div>📋 <strong>Réf. reçu :</strong> ${t.recu||t.ref}</div>
+    <div>👤 <strong>Contribuable :</strong> ${user?.nom||t.citoyen||'—'}</div>
+    <div>🏷️ <strong>Type :</strong> ${t.type_taxe}</div>
+    <div>💰 <strong>Montant :</strong> <span style="font-size:1rem;font-weight:800;color:#15803d">${t.montant.toLocaleString('fr-FR')} FCFA</span></div>
+    <div>📍 <strong>Arrondissement :</strong> ${t.arrondissement||'—'}</div>
+    <div>📅 <strong>Année fiscale :</strong> ${t.annee}</div>
+    <hr style="border:none;border-top:1px dashed #86efac;margin:8px 0"/>
+    <div>✅ <strong>Date de validation :</strong> ${t.date_paiement||'—'}</div>
+    <div>💳 <strong>Mode :</strong> ${t.mode_paiement||'—'}</div>
+    ${t.reference_paiement?`<div>🔖 <strong>Réf. transaction :</strong> ${t.reference_paiement}</div>`:''}`;
+  document.getElementById('recuOverlay').style.display='flex';
+}
+function fermerRecuModal(){
+  document.getElementById('recuOverlay').style.display='none';
+  _recuCourant=null;
+}
+function telechargerRecuDepuisModal(){
+  if(_recuCourant) telechargerRecuMobile(_recuCourant.id);
+}
 function telechargerRecuMobile(id){
   const t=getTaxesMobile().find(x=>String(x.id)===String(id));
   if(!t)return;
@@ -2078,15 +2120,17 @@ function initFirebase(){
       const local=getTaxesMobile();
       const nowPaid=mine.filter(t=>t.statut==='payé');
       const prevPaid=(local.filter(t=>t.statut==='payé')||[]).map(t=>t.id);
-      nowPaid.forEach(t=>{
-        if(!prevPaid.includes(t.id)) showToast('✅ Votre taxe '+t.ref+' a été validée!');
-      });
+      const nouvellementValides=nowPaid.filter(t=>!prevPaid.includes(t.id));
       saveTaxesMobile(mine);
       const pending=mine.filter(t=>t.statut==='en_attente').length;
       const badge=document.getElementById('taxeBadgeMobile');
       if(badge){badge.style.display=pending?'inline':'none';badge.textContent=pending;}
       // Re-render si l'onglet taxes est actif
       if(document.getElementById('dem-taxes')&&document.getElementById('dem-taxes').style.display==='block') renderTaxesMobile();
+      // Afficher le reçu automatiquement pour chaque nouveau paiement validé
+      if(nouvellementValides.length>0){
+        setTimeout(()=>afficherRecuModal(nouvellementValides[0]),300);
+      }
     });
 
   }catch(e){
