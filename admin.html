@@ -573,7 +573,7 @@
 
 <script>
 // ============================= DATA =============================
-const TYPES_SIG={route:{label:'Route abîmée',ico:'🛣️'},eclairage:{label:'Éclairage cassé',ico:'💡'},ordures:{label:'Ordures',ico:'🗑️'},eau:{label:'Fuite d\'eau',ico:'💧'},securite:{label:'Sécurité',ico:'🔐'},autre:{label:'Autre',ico:'⚠️'}};
+const TYPES_SIG={route:{label:'Route abîmée',ico:'🛣️'},eclairage:{label:'Éclairage cassé',ico:'💡'},ordures:{label:'Ordures',ico:'🗑️'},dechets:{label:'Dépôt sauvage',ico:'🗑️'},eau:{label:'Fuite d\'eau',ico:'💧'},arbre:{label:'Arbre dangereux',ico:'🌳'},inondation:{label:'Inondation',ico:'🌊'},securite:{label:'Sécurité',ico:'🔐'},autre:{label:'Autre',ico:'⚠️'}};
 const AGENTS_LIST=['Fatima Traoré','Jean-Pierre Mbeki','Amina Hassan','David Koulibaly','Reine Ouédraogo','Ibrahim Sarr'];
 
 function initData(){
@@ -735,7 +735,7 @@ function renderCharts(){
 function renderSigTable(){
   const all=getSigs();
   let data=all.filter(s=>{
-    const matchSearch=!sigFilter.search||s.citoyen?.toLowerCase().includes(sigFilter.search.toLowerCase())||s.desc.toLowerCase().includes(sigFilter.search.toLowerCase())||s.quartier.toLowerCase().includes(sigFilter.search.toLowerCase());
+    const matchSearch=!sigFilter.search||s.citoyen?.toLowerCase().includes(sigFilter.search.toLowerCase())||s.desc?.toLowerCase().includes(sigFilter.search.toLowerCase())||s.quartier?.toLowerCase().includes(sigFilter.search.toLowerCase())||s.arrondissement?.toLowerCase().includes(sigFilter.search.toLowerCase());
     const matchStatus=sigFilter.statut==='tous'||s.statut===sigFilter.statut;
     const matchType=sigFilter.type==='tous'||s.type===sigFilter.type;
     return matchSearch&&matchStatus&&matchType;
@@ -751,10 +751,10 @@ function renderSigTable(){
   document.getElementById('sigPagInfo').textContent=`${data.length} résultat(s)`;
   document.getElementById('sigTableBody').innerHTML=data.map(s=>`
     <tr>
-      <td style="font-size:.75rem;color:var(--gray)">#${s.id}</td>
-      <td>${TYPES_SIG[s.type]?.ico} <span style="font-size:.8rem;font-weight:600">${TYPES_SIG[s.type]?.label}</span></td>
-      <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s.desc}">${s.desc}</td>
-      <td>📍 ${s.quartier}</td>
+      <td style="font-size:.75rem;color:var(--gray)">${s.ref||'#'+s.id}</td>
+      <td>${TYPES_SIG[s.type]?.ico||TYPES_SIG[s.categ]?.ico||'⚠️'} <span style="font-size:.8rem;font-weight:600">${TYPES_SIG[s.type]?.label||TYPES_SIG[s.categ]?.label||s.type||s.categ||'Autre'}</span></td>
+      <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s.desc||''}">${s.desc||'—'}</td>
+      <td>📍 ${s.quartier||s.arrondissement||'—'}${s.lieu?' · '+s.lieu:''}</td>
       <td style="font-size:.8rem">${s.date}</td>
       <td><select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateSigStatus(${s.id},this.value)">
         <option value="nouveau" ${s.statut==='nouveau'?'selected':''}>🔵 Nouveau</option>
@@ -1440,11 +1440,7 @@ let fbDb=null;
 try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     fbDb=firebase.database();
-    // Écouter signalements en temps réel
-    fbDb.ref('signalements').on('value',snap=>{
-      const v=snap.val();
-      if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('signalements',JSON.stringify(l));updateNavBadges();if(document.getElementById('signalements').classList.contains('active'))renderSigTable();}
-    });
+    // Signalements: géré par le listener ci-dessous avec normalisation
     // Écouter doléances des citoyens
     fbDb.ref('doleances').on('value',snap=>{
       const v=snap.val();
