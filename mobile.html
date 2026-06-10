@@ -1346,7 +1346,7 @@ function getSignalements(){return JSON.parse(localStorage.getItem('mes_signaleme
 function saveSignalements(d){localStorage.setItem('mes_signalements',JSON.stringify(d));}
 
 const SIGNAL_CATS={route:{ico:'🛣️',label:'Route dégradée'},eclairage:{ico:'💡',label:'Éclairage en panne'},dechets:{ico:'🗑️',label:'Dépôt sauvage'},eau:{ico:'💧',label:'Problème d\'eau'},arbre:{ico:'🌳',label:'Arbre dangereux'},inondation:{ico:'🌊',label:'Inondation'},securite:{ico:'🚔',label:'Sécurité'},autre:{ico:'📌',label:'Autre'}};
-const SIGNAL_STATUTS={nouveau:{ico:'🔴',label:'Nouveau',col:'#dc2626'},en_cours:{ico:'🟡',label:'En cours',col:'#d97706'},resolu:{ico:'🟢',label:'Résolu',col:'#16a34a'}};
+const SIGNAL_STATUTS={nouveau:{ico:'🔴',label:'Nouveau',col:'#dc2626'},en_cours:{ico:'🟡',label:'En cours',col:'#d97706'},resolu:{ico:'🟢',label:'Résolu',col:'#16a34a'},'résolu':{ico:'🟢',label:'Résolu',col:'#16a34a'}};
 
 function ouvrirSignalement(){
   showScreen('doleances');

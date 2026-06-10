@@ -1,4 +1,4 @@
-const CACHE = 'mairie-v8';
+const CACHE = 'mairie-v9';
 const ALWAYS_FRESH = ['mobile.html', 'admin.html'];
 
 // Pré-cacher les scripts critiques (Firebase SDK + Leaflet)
