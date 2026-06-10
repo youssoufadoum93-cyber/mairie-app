@@ -1444,8 +1444,7 @@ function envoyerSignalement(){
   // Envoyer vers Firebase — initialiser si nécessaire
   if(!fbDb) initFirebase();
   if(fbDb){
-    const payload={...sig,photo:null}; // pas de base64 dans Firebase
-    fbDb.ref('signalements/'+id).set(payload)
+    fbDb.ref('signalements/'+id).set(sig)
       .then(()=>showToast('✅ Signalement envoyé à la mairie — Réf: '+ref))
       .catch(e=>showToast('❌ Erreur envoi Firebase: '+e.message));
   } else {
@@ -1454,7 +1453,7 @@ function envoyerSignalement(){
     setTimeout(()=>{
       if(!fbDb) initFirebase();
       if(fbDb){
-        fbDb.ref('signalements/'+id).set({...sig,photo:null})
+        fbDb.ref('signalements/'+id).set(sig)
           .then(()=>showToast('✅ Signalement synchronisé — Réf: '+ref))
           .catch(()=>{});
       }
