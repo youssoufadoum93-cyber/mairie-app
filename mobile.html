@@ -381,6 +381,17 @@
     <button class="install-close" onclick="document.getElementById('installBanner').classList.remove('show')">✕</button>
   </div>
 
+  <!-- INSTALL HELP MODAL -->
+  <div id="installHelpOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:flex-end;justify-content:center">
+    <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:1.05rem;font-weight:800">📲 Installer l'application</div>
+        <button onclick="fermerInstallHelp()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b7280">✕</button>
+      </div>
+      <div id="installHelpContent"></div>
+    </div>
+  </div>
+
   <!-- SPLASH -->
   <div id="splash">
     <div class="splash-logo">🏛️</div>
@@ -896,12 +907,41 @@ function setupInstall(){
     }
   };
 }
+function fermerInstallHelp(){
+  document.getElementById('installHelpOverlay').style.display='none';
+}
 function showInstallHelp(){
   const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  const msg=isIOS
-    ?'Sur iPhone/iPad :\n1. Tapez le bouton Partager (carré + flèche)\n2. Faites défiler → "Sur l\'écran d\'accueil"\n3. Tapez "Ajouter"'
-    :'Sur Android :\n1. Tapez les 3 points ⋮ en haut à droite\n2. "Installer l\'application" ou "Ajouter à l\'écran d\'accueil"';
-  alert(msg);
+  const isSamsung=/SamsungBrowser/i.test(navigator.userAgent);
+  let html='';
+  if(isIOS){
+    html=`<div style="background:#fff7ed;border-radius:12px;padding:14px;margin-bottom:16px;font-size:.84rem;color:#92400e">
+      ⚠️ Sur iPhone/iPad, utilisez <strong>Safari</strong> (pas Chrome) pour installer
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">1</div><div>Ouvrez <strong>Safari</strong> et rechargez cette page</div></div>
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">2</div><div>Tapez le bouton <strong>Partager</strong> <span style="font-size:1.2rem">⬆</span> en bas de l'écran</div></div>
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">3</div><div>Faites défiler → tapez <strong>"Sur l'écran d'accueil"</strong></div></div>
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">4</div><div>Tapez <strong>"Ajouter"</strong> en haut à droite</div></div>
+    </div>`;
+  } else if(isSamsung){
+    html=`<div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">1</div><div>Tapez les <strong>3 lignes ≡</strong> en bas à droite</div></div>
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">2</div><div>Tapez <strong>"Ajouter page à"</strong> → <strong>"Écran d'accueil"</strong></div></div>
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">3</div><div>Confirmez en tapant <strong>"Ajouter"</strong></div></div>
+    </div>`;
+  } else {
+    html=`<div style="background:#f0fdf4;border-radius:12px;padding:14px;margin-bottom:16px;font-size:.84rem;color:#166534">
+      Utilisez <strong>Chrome</strong> sur Android
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">1</div><div>Tapez les <strong>3 points ⋮</strong> en haut à droite</div></div>
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">2</div><div>Tapez <strong>"Installer l'application"</strong><br><span style="font-size:.76rem;color:#6b7280">ou "Ajouter à l'écran d'accueil"</span></div></div>
+      <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">3</div><div>Confirmez en tapant <strong>"Installer"</strong></div></div>
+    </div>`;
+  }
+  document.getElementById('installHelpContent').innerHTML=html;
+  document.getElementById('installHelpOverlay').style.display='flex';
 }
 function ouvrirInstall(){
   if(deferredPrompt){
