@@ -559,7 +559,8 @@
           </div>
           <input id="signalPhotoInput" type="file" accept="image/*" style="display:none" onchange="onSignalPhotoChosen(this)"/>
 
-          <button onclick="envoyerSignalement()" style="width:100%;padding:14px;background:#dc2626;color:#fff;border:none;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:4px">🚨 Envoyer le signalement</button>
+          <div id="signalFbStatus" style="text-align:center;font-size:.75rem;padding:6px;border-radius:8px;margin-bottom:8px"></div>
+          <button onclick="verifierFbAvantSignal()" style="width:100%;padding:14px;background:#dc2626;color:#fff;border:none;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:4px">🚨 Envoyer le signalement</button>
         </div>
       </div>
 
@@ -1388,6 +1389,28 @@ function supprimerPhotoSignal(){
   document.getElementById('signalPhotoInput').value='';
 }
 
+function verifierFbAvantSignal(){
+  const el=document.getElementById('signalFbStatus');
+  if(!fbDb){
+    initFirebase();
+    if(el) el.style.cssText='background:#fef3c7;color:#92400e;';
+    if(el) el.textContent='⏳ Connexion Firebase en cours…';
+    setTimeout(()=>{
+      if(fbDb){
+        if(el) el.style.cssText='background:#f0fdf4;color:#16a34a;';
+        if(el) el.textContent='🟢 Connecté — envoi en cours…';
+        envoyerSignalement();
+      } else {
+        if(el) el.style.cssText='background:#fef2f2;color:#dc2626;';
+        if(el) el.textContent='🔴 Pas de connexion internet. Vérifiez votre réseau.';
+      }
+    },2500);
+    return;
+  }
+  if(el) el.style.cssText='background:#f0fdf4;color:#16a34a;';
+  if(el) el.textContent='🟢 Firebase connecté';
+  envoyerSignalement();
+}
 function envoyerSignalement(){
   const categ=document.getElementById('signalCateg').value;
   const desc=document.getElementById('signalDesc').value.trim();
@@ -1410,13 +1433,6 @@ function envoyerSignalement(){
   const sigs=getSignalements();
   sigs.unshift(sig);
   saveSignalements(sigs);
-  if(fbDb){
-    fbDb.ref('signalements/'+id).set({...sig,photo:sig.photo?'[photo]':null})
-      .then(()=>showToast('✅ Signalement envoyé à la mairie — Réf: '+ref))
-      .catch(e=>showToast('⚠️ Sauvegardé localement — Firebase: '+e.message));
-  } else {
-    showToast('⚠️ Firebase non connecté — signalement sauvegardé localement');
-  }
   // Vider le formulaire
   document.getElementById('signalDesc').value='';
   document.getElementById('signalLieu').value='';
@@ -1425,6 +1441,25 @@ function envoyerSignalement(){
   document.getElementById('signalForm').style.display='none';
   document.getElementById('signalListContainer').style.display='block';
   renderSignalements();
+  // Envoyer vers Firebase — initialiser si nécessaire
+  if(!fbDb) initFirebase();
+  if(fbDb){
+    const payload={...sig,photo:null}; // pas de base64 dans Firebase
+    fbDb.ref('signalements/'+id).set(payload)
+      .then(()=>showToast('✅ Signalement envoyé à la mairie — Réf: '+ref))
+      .catch(e=>showToast('❌ Erreur envoi Firebase: '+e.message));
+  } else {
+    showToast('⚠️ Pas de connexion internet — réessayez dans quelques secondes');
+    // Programmer un retry dans 5s
+    setTimeout(()=>{
+      if(!fbDb) initFirebase();
+      if(fbDb){
+        fbDb.ref('signalements/'+id).set({...sig,photo:null})
+          .then(()=>showToast('✅ Signalement synchronisé — Réf: '+ref))
+          .catch(()=>{});
+      }
+    },5000);
+  }
 }
 
 function renderSignalements(){
