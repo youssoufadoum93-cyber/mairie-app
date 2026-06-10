@@ -1981,8 +1981,9 @@ try{
       const local=getSigs();
       let nbNouveau=0;
       fbSigs.forEach(fb=>{
-        if(!local.find(s=>String(s.id)===String(fb.id))){
-          // Normaliser les champs du signalement mobile vers format admin
+        const existing=local.find(s=>String(s.id)===String(fb.id));
+        if(!existing){
+          // Nouveau signalement : ajouter
           local.unshift({
             id:fb.id, ref:fb.ref||'SIG-'+fb.id,
             type:fb.categ||fb.type||'autre',
@@ -1997,6 +1998,10 @@ try{
             photo:fb.photo&&fb.photo!=='[photo]'?fb.photo:null
           });
           nbNouveau++;
+        } else {
+          // Signalement existant : mettre à jour statut et agent depuis Firebase
+          if(fb.statut) existing.statut=fb.statut;
+          if(fb.agent) existing.agent=fb.agent;
         }
       });
       localStorage.setItem('signalements',JSON.stringify(local));
