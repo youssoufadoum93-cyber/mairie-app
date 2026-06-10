@@ -787,7 +787,9 @@ function chargerSignalementsFirebase(){
       <div class="kpi-card red"><div class="kpi-value">${nbNouveau}</div><div class="kpi-label">Nouveaux</div></div>
       <div class="kpi-card yellow"><div class="kpi-value">${nbEnCours}</div><div class="kpi-label">En cours</div></div>
       <div class="kpi-card green"><div class="kpi-value">${nbResolu}</div><div class="kpi-label">Résolus</div></div>`;
-    if(tbody) tbody.innerHTML=rows.map(s=>{
+    // Sauvegarder en localStorage pour openSigModal
+    localStorage.setItem('signalements',JSON.stringify(normalized));
+    if(tbody) tbody.innerHTML=rows.map((s,i)=>{
       const type=TYPES_SIG[s.type]||TYPES_SIG[s.categ]||{ico:'⚠️',label:s.type||s.categ||'Autre'};
       const st=s.statut||'nouveau';
       return`<tr>
@@ -797,15 +799,15 @@ function chargerSignalementsFirebase(){
         <td>📍 ${s.arrondissement||s.quartier||'—'}${s.lieu?' · '+s.lieu:''}</td>
         <td style="font-size:.8rem">${s.citoyen||'—'} ${s.tel?'('+s.tel+')':''}</td>
         <td style="font-size:.8rem">${s.date||'—'}</td>
-        <td><select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateSigStatus('${s.id}',this.value)">
+        <td><select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateSigStatus(${s.id},this.value)">
           <option value="nouveau" ${st==='nouveau'?'selected':''}>🔵 Nouveau</option>
           <option value="en_cours" ${st==='en_cours'?'selected':''}>🟡 En cours</option>
           <option value="résolu" ${st==='résolu'||st==='resolu'?'selected':''}>✅ Résolu</option>
         </select></td>
-        <td><button class="action-btn blue" onclick="voirSignalementRaw(${JSON.stringify(s).replace(/"/g,"'")})">👁 Voir</button></td>
+        <td><button class="action-btn blue" onclick="openSigModal(${s.id})">👁 Voir</button></td>
       </tr>`;
     }).join('');
-    document.getElementById('sigPagInfo').textContent=rows.length+' signalement(s) — source: Firebase';
+    document.getElementById('sigPagInfo').textContent=rows.length+' signalement(s)';
   }).catch(e=>{
     if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:#dc2626">❌ Erreur : '+e.message+'</td></tr>';
   });
@@ -1271,23 +1273,25 @@ function toggleAgent(id){
 
 // ============================= MODALS =============================
 function openSigModal(id){
-  const s=getSigs().find(x=>x.id===id);if(!s)return;
-  document.getElementById('modalTitle').textContent=`${TYPES_SIG[s.type]?.ico} Signalement #${s.id}`;
+  const s=getSigs().find(x=>String(x.id)===String(id));
+  if(!s){showToast('⚠️ Signalement introuvable — cliquez Actualiser');return;}
+  const type=TYPES_SIG[s.type]||TYPES_SIG[s.categ]||{ico:'⚠️',label:s.type||s.categ||'Autre'};
+  const lieu=s.lieu||(s.quartier||s.arrondissement||'—');
+  document.getElementById('modalTitle').textContent=`${type.ico} Signalement ${s.ref||'#'+s.id}`;
   document.getElementById('modalBody').innerHTML=`
-    ${s.photo?`<img src="${s.photo}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:180px;object-fit:cover">`:''}
-    <div class="detail-row"><strong>Type</strong>${TYPES_SIG[s.type]?.ico} ${TYPES_SIG[s.type]?.label}</div>
+    ${s.photo?`<img src="${s.photo}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:220px;object-fit:cover">`:''}
+    <div class="detail-row"><strong>Catégorie</strong>${type.ico} ${type.label}</div>
     <div class="detail-row"><strong>Citoyen</strong>${s.citoyen||'—'}</div>
     <div class="detail-row"><strong>Téléphone</strong>${s.tel||'—'}</div>
-    <div class="detail-row"><strong>Quartier</strong>📍 ${s.quartier}</div>
-    <div class="detail-row"><strong>Date</strong>📅 ${s.date}</div>
-    <div class="detail-row"><strong>GPS</strong>🌐 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div>
-    <div class="detail-row" style="align-items:flex-start"><strong>Description</strong><span>${s.desc}</span></div>
-    <div class="detail-row"><strong>Statut</strong><span class="badge badge-${s.statut}">${s.statut.replace('_',' ')}</span></div>
+    <div class="detail-row"><strong>Lieu</strong>📍 ${lieu}${s.lieu&&(s.quartier||s.arrondissement)?' — '+(s.quartier||s.arrondissement):''}</div>
+    <div class="detail-row"><strong>Date</strong>📅 ${s.date||'—'}</div>
+    <div class="detail-row" style="align-items:flex-start"><strong>Description</strong><span>${s.desc||'—'}</span></div>
+    <div class="detail-row"><strong>Statut</strong><span class="badge badge-${s.statut||'nouveau'}">${(s.statut||'nouveau').replace('_',' ')}</span></div>
     <div class="detail-row"><strong>Agent</strong>${s.agent||'<span style="color:var(--gray)">Non assigné</span>'}</div>
     <div class="modal-status-update">
       <div style="font-size:.82rem;font-weight:600;margin-bottom:8px">Mettre à jour le statut :</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${['nouveau','en_cours','résolu'].map(st=>`<button class="action-btn ${s.statut===st?'blue':''}" onclick="updateSigStatus(${s.id},'${st}');closeModal()">${st.replace('_',' ')}</button>`).join('')}
+        ${['nouveau','en_cours','résolu'].map(st=>`<button class="action-btn ${(s.statut||'nouveau')===st?'blue':''}" onclick="updateSigStatus(${s.id},'${st}');closeModal()">${st.replace('_',' ')}</button>`).join('')}
       </div>
       <div style="margin-top:12px;font-size:.82rem;font-weight:600;margin-bottom:8px">Assigner un agent :</div>
       <select class="filter-select" style="width:100%" onchange="assignSigAgent(${s.id},this.value)">
