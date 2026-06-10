@@ -907,7 +907,8 @@ function chargerDemandesFirebase(){
 }
 function updateDemStatus(id,val){
   const d=getDems();const s=d.find(x=>x.id===id);if(s){s.statut=val;saveDems(d);}
-  updateNavBadges();showToast(`✅ Statut demande mis à jour`);
+  if(fbDb) fbDb.ref('demandes/'+id+'/statut').set(val).catch(()=>{});
+  updateNavBadges();showToast(`✅ Statut mis à jour — le client sera notifié`);
 }
 function saveDemComment(id){
   const val=(document.getElementById('demCommentInput')?.value||'').trim();
@@ -1139,16 +1140,17 @@ function _chargerDemModal(d){
       :`<div style="border-top:1.5px solid var(--border);margin:12px 0 8px;font-size:.82rem;color:var(--gray)">📎 Aucune pièce jointe</div>`}
     <div class="detail-row"><strong>Statut</strong><span class="badge badge-${d.statut==='prêt'||d.statut==='livré'?'résolu':d.statut}">${d.statut}</span></div>
     <div class="detail-row"><strong>Agent</strong>${d.agent||'<span style="color:var(--gray)">Non assigné</span>'}</div>
-    ${d.commentaire?`<div class="detail-row"><strong>Commentaire</strong>${d.commentaire}</div>`:''}
+    ${d.commentaire?`<div class="detail-row"><strong>Message envoyé</strong><span style="color:var(--blue)">💬 ${d.commentaire}</span></div>`:''}
     <div class="modal-status-update">
       <div style="font-size:.82rem;font-weight:600;margin-bottom:8px">Mettre à jour le statut :</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${['en_attente','en_cours','prêt','livré'].map(st=>`<button class="action-btn ${d.statut===st?'blue':''}" onclick="updateDemStatus(${d.id},'${st}');closeModal()">${st}</button>`).join('')}
       </div>
       <div style="margin-top:12px">
-        <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">Commentaire agent :</div>
-        <textarea id="demCommentInput" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:.82rem;resize:vertical;min-height:60px" placeholder="Notes internes...">${d.commentaire||''}</textarea>
-        <button class="action-btn blue" style="margin-top:6px;width:100%" onclick="saveDemComment(${d.id})">💾 Enregistrer commentaire</button>
+        <div style="font-size:.82rem;font-weight:600;margin-bottom:4px">💬 Message au client :</div>
+        <div style="font-size:.73rem;color:var(--gray);margin-bottom:6px">📱 Ce message sera visible par le citoyen dans son application</div>
+        <textarea id="demCommentInput" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:.82rem;resize:vertical;min-height:60px" placeholder="Ex: Votre document est prêt, présentez-vous au guichet 2...">${d.commentaire||''}</textarea>
+        <button class="action-btn blue" style="margin-top:6px;width:100%" onclick="saveDemComment(${d.id})">📤 Envoyer au client</button>
       </div>
     </div>`;
   document.getElementById('modal').classList.add('show');
