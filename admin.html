@@ -577,18 +577,9 @@ const TYPES_SIG={route:{label:'Route abîmée',ico:'🛣️'},eclairage:{label:'
 const AGENTS_LIST=['Fatima Traoré','Jean-Pierre Mbeki','Amina Hassan','David Koulibaly','Reine Ouédraogo','Ibrahim Sarr'];
 
 function initData(){
+  // Signalements: toujours charger depuis Firebase, pas de démo locale
   if(!localStorage.getItem('signalements')){
-    const sigs=[
-      {id:1,type:'route',citoyen:'Mamadou Koné',tel:'655-123',quartier:'1er Arrondissement',desc:'Nid de poule dangereux devant l\'école primaire N°3',lat:12.365,lng:15.044,statut:'en_cours',date:'2026-06-06',agent:'Fatima Traoré',photo:null},
-      {id:2,type:'eclairage',citoyen:'Aïcha Diabaté',tel:'677-234',quartier:'2ème Arrondissement',desc:'Lampadaire en panne rue du commerce depuis 3 semaines',lat:12.362,lng:15.041,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
-      {id:3,type:'ordures',citoyen:'Ibrahim Coulibaly',tel:'699-345',quartier:'3ème Arrondissement',desc:'Dépôt sauvage à l\'angle de la rue principale',lat:12.368,lng:15.048,statut:'résolu',date:'2026-06-05',agent:'Jean-Pierre Mbeki',photo:null},
-      {id:4,type:'eau',citoyen:'Marie Ngozi',tel:'611-456',quartier:'4ème Arrondissement',desc:'Fuite d\'eau importante sur la conduite rue Liberté',lat:12.360,lng:15.046,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
-      {id:5,type:'route',citoyen:'Ahmed Touré',tel:'622-567',quartier:'5ème Arrondissement',desc:'Chaussée effondrée à l\'entrée de la zone industrielle',lat:12.370,lng:15.042,statut:'en_cours',date:'2026-06-04',agent:'Amina Hassan',photo:null},
-      {id:6,type:'eclairage',citoyen:'Fatou Diallo',tel:'633-678',quartier:'6ème Arrondissement',desc:'Trois lampadaires en panne avenue des Palmiers',lat:12.363,lng:15.050,statut:'résolu',date:'2026-06-03',agent:'Reine Ouédraogo',photo:null},
-      {id:7,type:'securite',citoyen:'Paul Mwamba',tel:'644-789',quartier:'7ème Arrondissement',desc:'Grille de protection cassée sur le canal, risque pour les enfants',lat:12.366,lng:15.043,statut:'nouveau',date:'2026-06-08',agent:null,photo:null},
-      {id:8,type:'ordures',citoyen:'Salimata Ba',tel:'655-890',quartier:'8ème Arrondissement',desc:'Poubelles non collectées depuis 10 jours',lat:12.369,lng:15.047,statut:'en_cours',date:'2026-06-06',agent:'David Koulibaly',photo:null},
-    ];
-    localStorage.setItem('signalements',JSON.stringify(sigs));
+    localStorage.setItem('signalements',JSON.stringify([]));
   }
   if(!localStorage.getItem('demandes_admin')){
     const dem=[
@@ -787,7 +778,8 @@ function chargerSignalementsFirebase(){
       return;
     }
     const fbSigs=Object.values(v).sort((a,b)=>b.id-a.id);
-    showToast('📥 '+fbSigs.length+' signalement(s) trouvé(s) dans Firebase');
+    const refs=fbSigs.map(s=>s.ref||s.id).join(', ');
+    showToast('📥 '+fbSigs.length+' dans Firebase : '+refs.slice(0,80));
     // Remplacer complètement le localStorage avec les données Firebase
     const normalized=fbSigs.map(fb=>({
       id:fb.id,
@@ -1440,7 +1432,8 @@ let fbDb=null;
 try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     fbDb=firebase.database();
-    // Signalements: géré par le listener ci-dessous avec normalisation
+    // Nettoyer les anciennes entrées de démo (IDs 1-8) de Firebase
+    [1,2,3,4,5,6,7,8].forEach(id=>fbDb.ref('signalements/'+id).remove().catch(()=>{}));
     // Écouter doléances des citoyens
     fbDb.ref('doleances').on('value',snap=>{
       const v=snap.val();
