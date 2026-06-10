@@ -1513,10 +1513,7 @@ function soumettreDemandeDoc(){
   saveDemandes(dems);
   // Firebase sync
   if(fbDb){
-    const updates={};
-    updates['demandes/'+nouvDem.id]={...nouvDem,pieces:[]};
-    nouvDem.pieces.forEach((p,i)=>{updates['demandes/'+nouvDem.id+'/pieces/'+i]=p;});
-    fbDb.ref().update(updates).catch(()=>{});
+    fbDb.ref('demandes/'+nouvDem.id).set(nouvDem).catch(()=>{});
   }
   document.getElementById('demRefNum').textContent=ref;
   fermerFormDem();

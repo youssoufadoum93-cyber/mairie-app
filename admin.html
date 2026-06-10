@@ -890,7 +890,7 @@ function chargerDemandesFirebase(){
           retrait:n.retrait||'guichet',
           label:n.label||n.type_doc||n.type||'—',
           ico:n.ico||'📄',
-          pieces:Array.isArray(n.pieces)?n.pieces:[]
+          pieces:n.pieces?(Array.isArray(n.pieces)?n.pieces:Object.values(n.pieces)):[]
         };
       }).sort((a,b)=>b.id-a.id);
       // Garder aussi les demandes locales demo
@@ -1237,7 +1237,7 @@ try{
             commentaire:ex?ex.commentaire:'',
             donnees:n.donnees||{}, retrait:n.retrait||'guichet',
             label:n.label||n.type_doc||n.type||'—', ico:n.ico||'📄',
-            pieces:Array.isArray(n.pieces)?n.pieces:[]
+            pieces:n.pieces?(Array.isArray(n.pieces)?n.pieces:Object.values(n.pieces)):[]
           };
         });
         const avant=existantes.length;
