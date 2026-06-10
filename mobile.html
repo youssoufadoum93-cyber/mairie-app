@@ -612,6 +612,7 @@
         <div class="menu-item" onclick="showToast('📬 Notifications configurées')"><div class="mi-ico blue">🔔</div><div class="mi-label">Notifications</div><div class="mi-arrow">›</div></div>
         <div class="menu-item" onclick="showToast('📍 Quartiers suivis')"><div class="mi-ico green">📍</div><div class="mi-label">Mes quartiers suivis</div><div class="mi-arrow">›</div></div>
         <div class="menu-item" onclick="showToast('📊 Historique ouvert')"><div class="mi-ico orange">📋</div><div class="mi-label">Historique des démarches</div><div class="mi-arrow">›</div></div>
+        <div class="menu-item" onclick="ouvrirInstall()"><div class="mi-ico" style="background:#eff6ff">📲</div><div class="mi-label">Installer l'application</div><div class="mi-arrow">›</div></div>
         <div class="menu-item" onclick="window.location='admin.html'"><div class="mi-ico purple">🏛️</div><div class="mi-label">Accès Admin (démo)</div><div class="mi-arrow">›</div></div>
         <div class="menu-item" onclick="doLogout()"><div class="mi-ico" style="background:var(--red-light)">🚪</div><div class="mi-label" style="color:var(--red)">Se déconnecter</div><div class="mi-arrow">›</div></div>
       </div>
@@ -873,16 +874,42 @@ window.addEventListener('load',()=>{
 
 // ========================= INSTALL PWA =========================
 let deferredPrompt=null;
+// Capturer l'event le plus tôt possible (avant window.load)
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  document.getElementById('installBanner').classList.add('show');
+});
+window.addEventListener('appinstalled',()=>{
+  deferredPrompt=null;
+  document.getElementById('installBanner').classList.remove('show');
+});
 function setupInstall(){
-  window.addEventListener('beforeinstallprompt',e=>{
-    e.preventDefault();deferredPrompt=e;
-    document.getElementById('installBanner').classList.add('show');
-    document.getElementById('installBtn').onclick=async()=>{
-      deferredPrompt.prompt();const r=await deferredPrompt.userChoice;
-      if(r.outcome==='accepted')document.getElementById('installBanner').classList.remove('show');
+  document.getElementById('installBtn').onclick=async()=>{
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      const r=await deferredPrompt.userChoice;
+      if(r.outcome==='accepted') document.getElementById('installBanner').classList.remove('show');
       deferredPrompt=null;
-    };
-  });
+    } else {
+      showInstallHelp();
+    }
+  };
+}
+function showInstallHelp(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const msg=isIOS
+    ?'Sur iPhone/iPad :\n1. Tapez le bouton Partager (carré + flèche)\n2. Faites défiler → "Sur l\'écran d\'accueil"\n3. Tapez "Ajouter"'
+    :'Sur Android :\n1. Tapez les 3 points ⋮ en haut à droite\n2. "Installer l\'application" ou "Ajouter à l\'écran d\'accueil"';
+  alert(msg);
+}
+function ouvrirInstall(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(r=>{deferredPrompt=null;});
+  } else {
+    showInstallHelp();
+  }
 }
 
 // ========================= ONBOARDING =========================
