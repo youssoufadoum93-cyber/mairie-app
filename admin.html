@@ -764,48 +764,55 @@ function filterSigStatus(v){sigFilter.statut=v;renderSigTable();}
 function filterSigType(v){sigFilter.type=v;renderSigTable();}
 
 function chargerSignalementsFirebase(){
+  const tbody=document.getElementById('sigTableBody');
+  const kpiRow=document.getElementById('sigKpiRow');
+  if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:#6b7280">⏳ Lecture Firebase en cours…</td></tr>';
   if(!fbDb){
-    showToast('⚠️ Firebase non connecté — rechargez la page');
-    renderSigTable();
+    if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:#dc2626">❌ Firebase non connecté — rechargez la page (Ctrl+Shift+R)</td></tr>';
     return;
   }
-  showToast('⏳ Chargement depuis Firebase…');
   fbDb.ref('signalements').once('value').then(snap=>{
     const v=snap.val();
-    if(!v){
-      showToast('ℹ️ Aucun signalement dans Firebase');
-      renderSigTable();
+    if(!v||Object.keys(v).length===0){
+      if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:#6b7280">📭 Aucun signalement dans Firebase</td></tr>';
       return;
     }
-    const fbSigs=Object.values(v).sort((a,b)=>b.id-a.id);
-    // Remplacer complètement le localStorage avec les données Firebase (brut)
-    const normalized=fbSigs.map(fb=>({
-      id:fb.id,
-      ref:fb.ref||'SIG-'+fb.id,
-      type:fb.categ||fb.type||'autre',
-      desc:fb.desc||fb.description||'',
-      quartier:fb.arrondissement||fb.quartier||'Non précisé',
-      lieu:fb.lieu||'',
-      citoyen:fb.citoyen||'Anonyme',
-      tel:fb.tel||'',
-      date:fb.date||new Date().toISOString().slice(0,10),
-      statut:fb.statut||'nouveau',
-      agent:fb.agent||null,
-      photo:fb.photo&&fb.photo!=='[photo]'?fb.photo:null
-    }));
-    localStorage.setItem('signalements',JSON.stringify(normalized));
-    updateNavBadges();
-    renderSigTable();
-    // Afficher debug en haut du tableau
-    const tbody=document.getElementById('sigTableBody');
-    const debugRow=`<tr style="background:#fef9c3"><td colspan="8" style="font-size:.75rem;padding:8px 12px;color:#92400e">
-      🔍 <strong>Firebase contient ${fbSigs.length} signalement(s) :</strong> ${fbSigs.map(s=>`[${s.ref||s.id} — ${s.citoyen||'?'} — ${s.statut||'?'}]`).join(' · ')}
-    </td></tr>`;
-    if(tbody) tbody.insertAdjacentHTML('afterbegin',debugRow);
+    // Afficher DIRECTEMENT — aucun localStorage impliqué
+    const rows=Object.values(v).sort((a,b)=>b.id-a.id);
+    const nbNouveau=rows.filter(s=>(s.statut||'nouveau')==='nouveau').length;
+    const nbEnCours=rows.filter(s=>s.statut==='en_cours').length;
+    const nbResolu=rows.filter(s=>s.statut==='résolu'||s.statut==='resolu').length;
+    if(kpiRow) kpiRow.innerHTML=`
+      <div class="kpi-card"><div class="kpi-value">${rows.length}</div><div class="kpi-label">Total</div></div>
+      <div class="kpi-card red"><div class="kpi-value">${nbNouveau}</div><div class="kpi-label">Nouveaux</div></div>
+      <div class="kpi-card yellow"><div class="kpi-value">${nbEnCours}</div><div class="kpi-label">En cours</div></div>
+      <div class="kpi-card green"><div class="kpi-value">${nbResolu}</div><div class="kpi-label">Résolus</div></div>`;
+    if(tbody) tbody.innerHTML=rows.map(s=>{
+      const type=TYPES_SIG[s.type]||TYPES_SIG[s.categ]||{ico:'⚠️',label:s.type||s.categ||'Autre'};
+      const st=s.statut||'nouveau';
+      return`<tr>
+        <td style="font-size:.75rem;color:var(--gray)">${s.ref||'#'+s.id}</td>
+        <td>${type.ico} <span style="font-size:.8rem;font-weight:600">${type.label}</span></td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.desc||'—'}</td>
+        <td>📍 ${s.arrondissement||s.quartier||'—'}${s.lieu?' · '+s.lieu:''}</td>
+        <td style="font-size:.8rem">${s.citoyen||'—'} ${s.tel?'('+s.tel+')':''}</td>
+        <td style="font-size:.8rem">${s.date||'—'}</td>
+        <td><select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateSigStatus('${s.id}',this.value)">
+          <option value="nouveau" ${st==='nouveau'?'selected':''}>🔵 Nouveau</option>
+          <option value="en_cours" ${st==='en_cours'?'selected':''}>🟡 En cours</option>
+          <option value="résolu" ${st==='résolu'||st==='resolu'?'selected':''}>✅ Résolu</option>
+        </select></td>
+        <td><button class="action-btn blue" onclick="voirSignalementRaw(${JSON.stringify(s).replace(/"/g,"'")})">👁 Voir</button></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('sigPagInfo').textContent=rows.length+' signalement(s) — source: Firebase';
   }).catch(e=>{
-    showToast('❌ Erreur Firebase : '+e.message);
-    renderSigTable();
+    if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:#dc2626">❌ Erreur : '+e.message+'</td></tr>';
   });
+}
+
+function voirSignalementRaw(s){
+  alert('Signalement:\nRéf: '+(s.ref||s.id)+'\nCitoyen: '+(s.citoyen||'—')+'\nCatégorie: '+(s.categ||s.type||'—')+'\nDescription: '+(s.desc||'—')+'\nLieu: '+(s.lieu||'—')+'\nArrondissement: '+(s.arrondissement||s.quartier||'—')+'\nDate: '+(s.date||'—')+'\nStatut: '+(s.statut||'—'));
 }
 
 // ============================= DOLÉANCES CITOYENS =============================
