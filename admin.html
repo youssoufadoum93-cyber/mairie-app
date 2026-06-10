@@ -326,6 +326,7 @@
     <div id="signalements" class="section">
       <div class="section-head">
         <div><h2>🚨 Signalements Citoyens</h2><p>Gérer et traiter les signalements en cours</p></div>
+        <button class="tb-btn primary" onclick="chargerSignalementsFirebase()">🔄 Actualiser</button>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="sigKpiRow"></div>
@@ -770,6 +771,42 @@ function renderSigTable(){
 function filterSig(v){sigFilter.search=v;renderSigTable();}
 function filterSigStatus(v){sigFilter.statut=v;renderSigTable();}
 function filterSigType(v){sigFilter.type=v;renderSigTable();}
+
+function chargerSignalementsFirebase(){
+  if(!fbDb){renderSigTable();return;}
+  fbDb.ref('signalements').once('value').then(snap=>{
+    const v=snap.val();
+    if(v){
+      const fbSigs=Object.values(v).sort((a,b)=>b.id-a.id);
+      const local=getSigs();
+      let nbNouveau=0;
+      fbSigs.forEach(fb=>{
+        const existing=local.find(s=>String(s.id)===String(fb.id));
+        if(!existing){
+          local.unshift({
+            id:fb.id, ref:fb.ref||'SIG-'+fb.id,
+            type:fb.categ||fb.type||'autre',
+            desc:fb.desc||fb.description||'',
+            quartier:fb.arrondissement||fb.quartier||'Non précisé',
+            lieu:fb.lieu||'',
+            citoyen:fb.citoyen||'Anonyme',
+            tel:fb.tel||'',
+            date:fb.date||new Date().toISOString().slice(0,10),
+            statut:fb.statut||'nouveau',
+            agent:fb.agent||null,
+            photo:fb.photo&&fb.photo!=='[photo]'?fb.photo:null
+          });
+          nbNouveau++;
+        } else {
+          existing.statut=fb.statut||existing.statut;
+        }
+      });
+      localStorage.setItem('signalements',JSON.stringify(local));
+      updateNavBadges();
+    }
+    renderSigTable();
+  }).catch(()=>renderSigTable());
+}
 
 // ============================= DOLÉANCES CITOYENS =============================
 function getDoleances(){return JSON.parse(localStorage.getItem('doleances')||'[]');}
@@ -1360,7 +1397,7 @@ function showSection(id,navEl){
   if(navEl) navEl.classList.add('active');
   document.getElementById('breadcrumbText').textContent=SECTION_TITLES[id]||id;
   if(window.innerWidth<=700) document.getElementById('sidebar').classList.remove('open');
-  if(id==='signalements') renderSigTable();
+  if(id==='signalements') chargerSignalementsFirebase();
   else if(id==='doleances_admin') renderDolTable();
   else if(id==='demandes') chargerDemandesFirebase();
   else if(id==='revenus') renderRevenus();
@@ -1492,6 +1529,7 @@ try{
       localStorage.setItem('signalements',JSON.stringify(local));
       updateNavBadges();
       if(document.getElementById('signalements')?.classList.contains('active')) renderSigTable();
+      if(document.getElementById('accueil_admin')?.classList.contains('active')) renderAccueilAdmin();
       if(nbNouveau>0) showToast('🚨 '+nbNouveau+' nouveau(x) signalement(s) reçu(s) !');
     });
     // Écouter alertes
@@ -1523,8 +1561,8 @@ function fbSync(path,data){
 // Surcharge des fonctions de sauvegarde pour synchroniser Firebase
 const __origSaveAlertes=saveAlertes;
 saveAlertes=function(d){__origSaveAlertes(d);fbSync('alertes',d);};
-const __origSaveSigs=saveSigs;
-saveSigs=function(d){__origSaveSigs(d);fbSync('signalements',d);};
+// Pour les signalements, on NE fait PAS fbSync (le mobile est la source des nouveaux)
+// updateSigStatus gère lui-même l'écriture Firebase champ par champ
 const __origSaveDems=saveDems;
 saveDems=function(d){
   __origSaveDems(d);
