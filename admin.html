@@ -465,10 +465,11 @@
               <option value="prêt">✅ Prêt</option>
               <option value="livré">📦 Livré</option>
             </select>
+            <button class="tb-btn" id="demViewBtn" onclick="toggleDemView()" style="white-space:nowrap">👥 Vue par citoyen</button>
           </div>
         </div>
-        <table>
-          <thead><tr><th>N°</th><th>Citoyen</th><th>Document</th><th>Date demande</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
+        <table id="demTable">
+          <thead id="demThead"><tr><th>N°</th><th>Citoyen</th><th>Document</th><th>Date demande</th><th>Statut</th><th>Agent</th><th>Actions</th></tr></thead>
           <tbody id="demTableBody"></tbody>
         </table>
         <div class="pagination"><span id="demPagInfo">—</span><div class="page-btns"></div></div>
@@ -1060,10 +1061,21 @@ function updateSigStatus(id,val){
 function quickUpdateSig(id){showSection('signalements',document.querySelectorAll('.nav-item')[1]);}
 
 // ============================= DEMANDES =============================
+let demView='liste'; // 'liste' ou 'groupe'
+function toggleDemView(){
+  demView=demView==='liste'?'groupe':'liste';
+  document.getElementById('demViewBtn').textContent=demView==='liste'?'👥 Vue par citoyen':'📋 Vue liste';
+  document.getElementById('demViewBtn').style.background=demView==='groupe'?'var(--blue)':'';
+  document.getElementById('demViewBtn').style.color=demView==='groupe'?'#fff':'';
+  document.getElementById('demViewBtn').style.border=demView==='groupe'?'none':'';
+  renderDemTable();
+}
+
 function renderDemTable(){
+  if(demView==='groupe'){renderDemGroupee();return;}
   const all=getDems();
   let data=all.filter(d=>{
-    const m=!demFilter.search||d.citoyen.toLowerCase().includes(demFilter.search.toLowerCase())||d.type_doc.toLowerCase().includes(demFilter.search.toLowerCase());
+    const m=!demFilter.search||d.citoyen.toLowerCase().includes(demFilter.search.toLowerCase())||d.type_doc.toLowerCase().includes(demFilter.search.toLowerCase())||(d.tel||'').includes(demFilter.search);
     const ms=demFilter.statut==='tous'||d.statut===demFilter.statut;
     return m&&ms;
   });
@@ -1097,6 +1109,85 @@ function renderDemTable(){
 }
 function filterDem(v){demFilter.search=v;renderDemTable();}
 function filterDemStatus(v){demFilter.statut=v;renderDemTable();}
+
+function renderDemGroupee(){
+  const all=getDems();
+  const search=(demFilter.search||'').toLowerCase();
+  // Grouper par numéro de téléphone
+  const groupes={};
+  all.forEach(d=>{
+    const tel=String(d.tel||'').replace(/\s/g,'')||'_sans_tel_'+d.citoyen;
+    if(!groupes[tel]) groupes[tel]={tel:d.tel||'—',citoyen:d.citoyen||'—',demandes:[]};
+    groupes[tel].demandes.push(d);
+  });
+  // Filtrer sur recherche
+  let rows=Object.values(groupes).filter(g=>{
+    if(!search) return true;
+    return g.citoyen.toLowerCase().includes(search)||g.tel.includes(search)||
+      g.demandes.some(d=>d.type_doc.toLowerCase().includes(search));
+  });
+  // KPIs inchangés
+  const kpis=[
+    {v:all.length,l:'Total demandes',c:''},
+    {v:all.filter(d=>d.statut==='en_attente').length,l:'En attente',c:'red'},
+    {v:all.filter(d=>d.statut==='en_cours'||d.statut==='prêt').length,l:'En cours / Prêts',c:'yellow'},
+    {v:all.filter(d=>d.statut==='livré').length,l:'Livrés',c:'green'},
+  ];
+  document.getElementById('demKpiRow').innerHTML=kpis.map(k=>`<div class="kpi-card ${k.c}"><div class="kpi-value">${k.v}</div><div class="kpi-label">${k.l}</div></div>`).join('');
+  document.getElementById('demPagInfo').textContent=`${rows.length} citoyen(s)`;
+  document.getElementById('demThead').innerHTML=`<tr><th>Citoyen</th><th>Téléphone</th><th>Demandes</th><th>Statuts</th><th>Actions</th></tr>`;
+  const statIco={en_attente:'⏳',en_cours:'🟡',prêt:'✅',livré:'📦'};
+  document.getElementById('demTableBody').innerHTML=rows.map(g=>{
+    const nb=g.demandes.length;
+    const nbAttente=g.demandes.filter(d=>d.statut==='en_attente').length;
+    const nbCours=g.demandes.filter(d=>d.statut==='en_cours'||d.statut==='prêt').length;
+    const nbLivre=g.demandes.filter(d=>d.statut==='livré').length;
+    const types=g.demandes.map(d=>`<span style="background:#eff6ff;color:var(--blue);font-size:.72rem;padding:2px 7px;border-radius:8px;white-space:nowrap">📄 ${d.label||d.type_doc||'—'}</span>`).join(' ');
+    const statuts=[
+      nbAttente?`<span style="background:#fef2f2;color:#dc2626;font-size:.72rem;padding:2px 7px;border-radius:8px">⏳ ${nbAttente} en attente</span>`:'',
+      nbCours?`<span style="background:#fefce8;color:#d97706;font-size:.72rem;padding:2px 7px;border-radius:8px">🟡 ${nbCours} en cours</span>`:'',
+      nbLivre?`<span style="background:#f0fdf4;color:#16a34a;font-size:.72rem;padding:2px 7px;border-radius:8px">📦 ${nbLivre} livré(s)</span>`:''
+    ].filter(Boolean).join(' ');
+    const telClean=g.tel.replace(/\s/g,'');
+    return`<tr>
+      <td><strong>${g.citoyen}</strong></td>
+      <td style="font-size:.85rem;font-weight:700;color:var(--blue)">📞 ${g.tel}</td>
+      <td><span style="font-weight:700;font-size:.9rem">${nb}</span> <span style="color:var(--gray);font-size:.8rem">demande${nb>1?'s':''}</span><br><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${types}</div></td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:4px">${statuts||'<span style="color:var(--gray);font-size:.8rem">—</span>'}</div></td>
+      <td><button class="action-btn blue" onclick="voirDemandesCitoyen('${telClean}')">👁 Voir tout (${nb})</button></td>
+    </tr>`;
+  }).join('');
+  if(!rows.length) document.getElementById('demTableBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray)">Aucun résultat</td></tr>';
+}
+
+function voirDemandesCitoyen(tel){
+  const all=getDems();
+  const dems=all.filter(d=>String(d.tel||'').replace(/\s/g,'')===tel);
+  if(!dems.length) return;
+  const citoyen=dems[0].citoyen||'—';
+  const statIco={en_attente:'⏳ En attente',en_cours:'🟡 En cours',prêt:'✅ Prêt',livré:'📦 Livré'};
+  document.getElementById('modalTitle').textContent=`👤 ${citoyen} — ${dems.length} demande${dems.length>1?'s':''}`;
+  document.getElementById('modalBody').innerHTML=`
+    <div style="margin-bottom:14px;font-size:.85rem;color:var(--gray)">📞 ${dems[0].tel||'—'}</div>
+    ${dems.map(d=>`
+    <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:.9rem">📄 ${d.label||d.type_doc||'—'}</strong>
+        <span class="badge badge-${d.statut==='prêt'||d.statut==='livré'?'résolu':d.statut||'en_attente'}" style="font-size:.75rem">${statIco[d.statut]||d.statut||'—'}</span>
+      </div>
+      <div style="font-size:.8rem;color:var(--gray);margin-bottom:8px">📅 ${d.date||'—'} · ${d.retrait==='domicile'?'🚚 Livraison domicile':'🏛 Retrait guichet'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <select class="filter-select" style="font-size:.75rem;padding:4px 6px" onchange="updateDemStatus(${d.id},this.value);voirDemandesCitoyen('${tel}')">
+          <option value="en_attente" ${d.statut==='en_attente'?'selected':''}>⏳ En attente</option>
+          <option value="en_cours" ${d.statut==='en_cours'?'selected':''}>🟡 En cours</option>
+          <option value="prêt" ${d.statut==='prêt'?'selected':''}>✅ Prêt</option>
+          <option value="livré" ${d.statut==='livré'?'selected':''}>📦 Livré</option>
+        </select>
+        <button class="action-btn blue" onclick="closeModal();openDemModal(${d.id})">📋 Détails</button>
+      </div>
+    </div>`).join('')}`;
+  document.getElementById('modal').classList.add('show');
+}
 
 function chargerDemandesFirebase(){
   if(!fbDb){showToast('⚠️ Firebase non connecté');renderDemTable();return;}
