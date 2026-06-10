@@ -773,39 +773,43 @@ function filterSigStatus(v){sigFilter.statut=v;renderSigTable();}
 function filterSigType(v){sigFilter.type=v;renderSigTable();}
 
 function chargerSignalementsFirebase(){
-  if(!fbDb){renderSigTable();return;}
+  if(!fbDb){
+    showToast('⚠️ Firebase non connecté — rechargez la page');
+    renderSigTable();
+    return;
+  }
+  showToast('⏳ Chargement depuis Firebase…');
   fbDb.ref('signalements').once('value').then(snap=>{
     const v=snap.val();
-    if(v){
-      const fbSigs=Object.values(v).sort((a,b)=>b.id-a.id);
-      const local=getSigs();
-      let nbNouveau=0;
-      fbSigs.forEach(fb=>{
-        const existing=local.find(s=>String(s.id)===String(fb.id));
-        if(!existing){
-          local.unshift({
-            id:fb.id, ref:fb.ref||'SIG-'+fb.id,
-            type:fb.categ||fb.type||'autre',
-            desc:fb.desc||fb.description||'',
-            quartier:fb.arrondissement||fb.quartier||'Non précisé',
-            lieu:fb.lieu||'',
-            citoyen:fb.citoyen||'Anonyme',
-            tel:fb.tel||'',
-            date:fb.date||new Date().toISOString().slice(0,10),
-            statut:fb.statut||'nouveau',
-            agent:fb.agent||null,
-            photo:fb.photo&&fb.photo!=='[photo]'?fb.photo:null
-          });
-          nbNouveau++;
-        } else {
-          existing.statut=fb.statut||existing.statut;
-        }
-      });
-      localStorage.setItem('signalements',JSON.stringify(local));
-      updateNavBadges();
+    if(!v){
+      showToast('ℹ️ Aucun signalement dans Firebase');
+      renderSigTable();
+      return;
     }
+    const fbSigs=Object.values(v).sort((a,b)=>b.id-a.id);
+    showToast('📥 '+fbSigs.length+' signalement(s) trouvé(s) dans Firebase');
+    // Remplacer complètement le localStorage avec les données Firebase
+    const normalized=fbSigs.map(fb=>({
+      id:fb.id,
+      ref:fb.ref||'SIG-'+fb.id,
+      type:fb.categ||fb.type||'autre',
+      desc:fb.desc||fb.description||'',
+      quartier:fb.arrondissement||fb.quartier||'Non précisé',
+      lieu:fb.lieu||'',
+      citoyen:fb.citoyen||'Anonyme',
+      tel:fb.tel||'',
+      date:fb.date||new Date().toISOString().slice(0,10),
+      statut:fb.statut||'nouveau',
+      agent:fb.agent||null,
+      photo:fb.photo&&fb.photo!=='[photo]'?fb.photo:null
+    }));
+    localStorage.setItem('signalements',JSON.stringify(normalized));
+    updateNavBadges();
     renderSigTable();
-  }).catch(()=>renderSigTable());
+  }).catch(e=>{
+    showToast('❌ Erreur Firebase : '+e.message);
+    renderSigTable();
+  });
 }
 
 // ============================= DOLÉANCES CITOYENS =============================

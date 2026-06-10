@@ -1410,7 +1410,13 @@ function envoyerSignalement(){
   const sigs=getSignalements();
   sigs.unshift(sig);
   saveSignalements(sigs);
-  if(fbDb) fbDb.ref('signalements/'+id).set({...sig,photo:sig.photo?'[photo]':null}).catch(()=>{});
+  if(fbDb){
+    fbDb.ref('signalements/'+id).set({...sig,photo:sig.photo?'[photo]':null})
+      .then(()=>showToast('✅ Signalement envoyé à la mairie — Réf: '+ref))
+      .catch(e=>showToast('⚠️ Sauvegardé localement — Firebase: '+e.message));
+  } else {
+    showToast('⚠️ Firebase non connecté — signalement sauvegardé localement');
+  }
   // Vider le formulaire
   document.getElementById('signalDesc').value='';
   document.getElementById('signalLieu').value='';
@@ -1419,7 +1425,6 @@ function envoyerSignalement(){
   document.getElementById('signalForm').style.display='none';
   document.getElementById('signalListContainer').style.display='block';
   renderSignalements();
-  showToast('✅ Signalement envoyé à la mairie — Réf: '+ref);
 }
 
 function renderSignalements(){
