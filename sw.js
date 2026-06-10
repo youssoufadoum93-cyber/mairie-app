@@ -1,9 +1,19 @@
-const CACHE = 'mairie-v6';
-// Ne jamais mettre mobile.html en cache — toujours charger depuis le réseau
+const CACHE = 'mairie-v7';
 const ALWAYS_FRESH = ['mobile.html', 'admin.html'];
 
+// Pré-cacher les scripts critiques (Firebase SDK + Leaflet)
+const PRECACHE = [
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  'https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js',
+];
+
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./manifest.json'])));
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(PRECACHE).catch(() => {}))
+  );
   self.skipWaiting();
 });
 

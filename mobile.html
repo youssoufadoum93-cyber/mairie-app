@@ -1733,7 +1733,18 @@ function afficherNotifAlerte(alerte){
   setTimeout(()=>{if(notif)notif.style.display='none';},8000);
 }
 function actualiserAlertes(){
-  if(!fbDb){showToast('⚠️ Firebase non connecté');return;}
+  if(!fbDb){
+    showToast('🔄 Connexion en cours...');
+    initFirebase();
+    setTimeout(()=>{
+      if(!fbDb){showToast('❌ Impossible de se connecter — vérifiez votre connexion internet');return;}
+      _chargerAlertesFirebase();
+    },2500);
+    return;
+  }
+  _chargerAlertesFirebase();
+}
+function _chargerAlertesFirebase(){
   fbDb.ref('alertes').once('value').then(snap=>{
     const v=snap.val();
     if(v){
@@ -1812,6 +1823,7 @@ function setFbIndicator(online){
 
 function initFirebase(){
   try{
+    if(typeof firebase==='undefined') throw new Error('SDK Firebase non chargé — vérifiez votre connexion internet');
     if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     fbDb=firebase.database();
     setFbIndicator(true);
@@ -1879,7 +1891,11 @@ function initFirebase(){
       }
     });
 
-  }catch(e){console.warn('Firebase non disponible:',e);setFbIndicator(false);}
+  }catch(e){
+    console.warn('Firebase non disponible:',e.message);
+    setFbIndicator(false);
+    fbDb=null;
+  }
 }
 
 function verifierMisesAJourStatut(v){
