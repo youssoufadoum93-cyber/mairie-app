@@ -300,7 +300,7 @@
     <div class="nav-label">Équipe</div>
     <div class="nav-item" onclick="showSection('agents',this)"><span class="n-ico">👥</span> Agents</div>
     <div class="nav-label">Système</div>
-    <div class="nav-item" onclick="showSection('comptes',this);loadComptes()"><span class="n-ico">🔑</span> Comptes admin</div>
+    <div class="nav-item" id="navComptes" style="display:none" onclick="showSection('comptes',this);loadComptes()"><span class="n-ico">🔑</span> Comptes admin</div>
   </nav>
   <div class="sidebar-footer">
     <div class="agent-name">🟢 <span id="adminDisplayName">Administrateur</span></div>
@@ -1591,11 +1591,11 @@ function showToast(msg){
 }
 
 // ============================= AUTH =============================
-let fbAuth=null, currentAdmin=null;
+let fbAuth=null, currentAdmin=null, currentAdminRole=null;
 
 function initAuth(){
   if(!fbAuth) return;
-  fbAuth.onAuthStateChanged(user=>{
+  fbAuth.onAuthStateChanged(async user=>{
     if(user){
       currentAdmin=user;
       document.getElementById('loginOverlay').style.display='none';
@@ -1603,11 +1603,29 @@ function initAuth(){
       document.getElementById('adminDisplayName').textContent=name;
       document.getElementById('adminEmailDisplay').textContent=user.email;
       document.getElementById('adminAvatar').textContent=user.email[0].toUpperCase();
+      // Lire le rôle depuis Firebase
+      try{
+        const snap=await fbDb.ref('admins/'+user.uid).once('value');
+        const data=snap.val();
+        currentAdminRole=data?.role||'admin';
+      }catch(e){ currentAdminRole='admin'; }
+      applyRolePermissions();
     } else {
       currentAdmin=null;
+      currentAdminRole=null;
       document.getElementById('loginOverlay').style.display='flex';
+      document.getElementById('navComptes').style.display='none';
     }
   });
+}
+
+function applyRolePermissions(){
+  const isSuperAdmin=currentAdminRole==='superadmin';
+  // Comptes admin : visible uniquement pour les superadmins
+  document.getElementById('navComptes').style.display=isSuperAdmin?'flex':'none';
+  // Badge de rôle dans la sidebar
+  document.getElementById('adminEmailDisplay').textContent=
+    (isSuperAdmin?'⭐ Super Admin — ':'👤 Admin — ')+currentAdmin.email;
 }
 
 async function loginAdmin(){
@@ -1668,6 +1686,10 @@ async function setupFirstAdmin(){
 
 async function loadComptes(){
   if(!fbDb||!currentAdmin) return;
+  if(currentAdminRole!=='superadmin'){
+    document.getElementById('comptesTableBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:#dc2626">⛔ Accès réservé au Super Admin.</td></tr>';
+    return;
+  }
   const tbody=document.getElementById('comptesTableBody');
   tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px">⏳ Chargement…</td></tr>';
   try{
