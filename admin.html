@@ -666,6 +666,8 @@
       <button class="close-modal" onclick="document.getElementById('addAccountModal').classList.remove('show')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="form-group"><div class="form-label">Nom complet</div><input type="text" id="newAccNom" class="form-input" placeholder="Ex : Amadou Traoré"/></div>
+      <div class="form-group"><div class="form-label">Poste / Fonction</div><input type="text" id="newAccPoste" class="form-input" placeholder="Ex : Agent état civil"/></div>
       <div class="form-group"><div class="form-label">Email</div><input type="email" id="newAccEmail" class="form-input" placeholder="admin@mairie.fr"/></div>
       <div class="form-group"><div class="form-label">Mot de passe (min. 6 caractères)</div><input type="password" id="newAccPwd" class="form-input" placeholder="Choisir un mot de passe"/></div>
       <div class="form-group"><div class="form-label">Rôle</div>
@@ -757,6 +759,24 @@ function getPays(){return JSON.parse(localStorage.getItem('paiements')||'[]');}
 function getAlertes(){return JSON.parse(localStorage.getItem('alertes')||'[]');}
 function saveAlertes(d){localStorage.setItem('alertes',JSON.stringify(d));}
 function getAgents(){return JSON.parse(localStorage.getItem('agents_data')||'[]');}
+function syncAgentsFirebase(){
+  if(!fbDb) return;
+  fbDb.ref('agents').once('value').then(snap=>{
+    const v=snap.val();
+    if(!v) return;
+    const fbAgents=Object.values(v);
+    const local=getAgents();
+    // Fusionner : ajouter les agents Firebase qui ne sont pas en local
+    fbAgents.forEach(fa=>{
+      if(!local.find(l=>String(l.id)===String(fa.id))){
+        local.push(fa);
+        if(fa.nom&&!AGENTS_LIST.includes(fa.nom)) AGENTS_LIST.push(fa.nom);
+      }
+    });
+    localStorage.setItem('agents_data',JSON.stringify(local));
+    if(document.getElementById('agents')?.classList.contains('active')) renderAgents();
+  });
+}
 
 // ============================= INIT =============================
 let charts={};
@@ -1500,10 +1520,11 @@ function renderAgents(){
   const agents=getAgents();
   document.getElementById('agentsGrid').innerHTML=agents.map(a=>`
     <div class="agent-card">
-      <div class="agent-avatar">${a.nom[0]}</div>
-      <div class="agent-name"><span class="agent-status ${a.actif?'':'off'}"></span>${a.nom}</div>
-      <div class="agent-role">${a.role}</div>
-      <div style="font-size:.75rem;color:var(--gray);margin-top:4px">📍 ${a.quartier}</div>
+      <div class="agent-avatar">${(a.nom||'?')[0]}</div>
+      <div class="agent-name"><span class="agent-status ${a.actif?'':'off'}"></span>${a.nom}${a.uid?` <span style="background:#eff6ff;color:var(--blue);font-size:.65rem;padding:1px 6px;border-radius:8px;font-weight:700">🔑 Admin</span>`:''}</div>
+      <div class="agent-role">${a.role||'—'}</div>
+      ${a.email?`<div style="font-size:.72rem;color:var(--gray);margin-top:2px">✉️ ${a.email}</div>`:''}
+      <div style="font-size:.75rem;color:var(--gray);margin-top:4px">📍 ${a.quartier||'—'}</div>
       <div class="agent-stats">
         <div class="agent-stat"><div class="n">${a.sigs_traites}</div><div class="l">Signalements</div></div>
         <div class="agent-stat"><div class="n">${a.dems_traitees}</div><div class="l">Demandes</div></div>
@@ -1802,29 +1823,43 @@ async function loadComptes(){
 }
 
 async function createAdminUser(){
+  const nom=document.getElementById('newAccNom').value.trim();
+  const poste=document.getElementById('newAccPoste').value.trim();
   const email=document.getElementById('newAccEmail').value.trim();
   const pwd=document.getElementById('newAccPwd').value;
   const role=document.getElementById('newAccRole').value;
   const errEl=document.getElementById('addAccError');
-  if(!email||!pwd){errEl.style.display='block';errEl.textContent='Remplissez tous les champs.';return;}
+  if(!nom||!email||!pwd){errEl.style.display='block';errEl.textContent='Nom complet, email et mot de passe sont obligatoires.';return;}
   if(pwd.length<6){errEl.style.display='block';errEl.textContent='Mot de passe trop court (min. 6 caractères).';return;}
   try{
-    // App secondaire pour ne pas déconnecter l'admin courant
     let secondaryApp;
     try{secondaryApp=firebase.app('AdminCreate');}catch(e){secondaryApp=firebase.initializeApp(FB_CONFIG,'AdminCreate');}
     const secAuth=secondaryApp.auth();
     const cred=await secAuth.createUserWithEmailAndPassword(email,pwd);
-    await fbDb.ref('admins/'+cred.user.uid).set({
-      email,role,
-      createdAt:new Date().toISOString().slice(0,10),
-      createdBy:currentAdmin?.email||'admin'
+    const uid=cred.user.uid;
+    const today=new Date().toISOString().slice(0,10);
+    // Sauvegarder le compte admin dans Firebase
+    await fbDb.ref('admins/'+uid).set({
+      nom,poste:poste||role,email,role,
+      createdAt:today,createdBy:currentAdmin?.email||'admin'
     });
+    // Ajouter aussi dans la liste des agents
+    const agentId=Date.now();
+    await fbDb.ref('agents/'+agentId).set({
+      id:agentId,uid,nom,role:poste||role,email,actif:true,
+      sigs_traites:0,dems_traitees:0,quartier:'—'
+    });
+    // Mettre à jour le localStorage agents
+    const agents=getAgents();
+    agents.push({id:agentId,uid,nom,role:poste||role,email,actif:true,sigs_traites:0,dems_traitees:0,quartier:'—'});
+    localStorage.setItem('agents_data',JSON.stringify(agents));
+    // Mettre à jour AGENTS_LIST pour les dropdowns
+    if(!AGENTS_LIST.includes(nom)) AGENTS_LIST.push(nom);
     await secAuth.signOut();
     document.getElementById('addAccountModal').classList.remove('show');
-    document.getElementById('newAccEmail').value='';
-    document.getElementById('newAccPwd').value='';
+    ['newAccNom','newAccPoste','newAccEmail','newAccPwd'].forEach(id=>document.getElementById(id).value='');
     errEl.style.display='none';
-    showToast('✅ Compte créé : '+email);
+    showToast('✅ Compte créé et agent ajouté : '+nom);
     loadComptes();
   }catch(e){
     errEl.style.display='block';
@@ -1955,6 +1990,8 @@ try{
       const v=snap.val();
       if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);localStorage.setItem('alertes',JSON.stringify(l));if(document.getElementById('alertes_admin').classList.contains('active'))renderAlertesAdmin();}
     });
+    // Synchroniser les agents depuis Firebase
+    syncAgentsFirebase();
     // Indicateur connexion — affiché après chargement DOM
     window.addEventListener('load',()=>{
       const fb=document.createElement('span');
