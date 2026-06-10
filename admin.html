@@ -635,8 +635,9 @@
     <div id="agents" class="section">
       <div class="section-head">
         <div><h2>👥 Gestion des Agents</h2><p>Équipe municipale et statistiques de traitement</p></div>
+        <button class="tb-btn primary" onclick="chargerAgentsFirebase()">🔄 Actualiser</button>
       </div>
-      <div class="agents-grid" id="agentsGrid"></div>
+      <div class="agents-grid" id="agentsGrid"><div style="text-align:center;padding:40px;color:var(--gray)">⏳ Chargement...</div></div>
     </div>
 
     <!-- =========== COMPTES ADMIN =========== -->
@@ -759,24 +760,42 @@ function getPays(){return JSON.parse(localStorage.getItem('paiements')||'[]');}
 function getAlertes(){return JSON.parse(localStorage.getItem('alertes')||'[]');}
 function saveAlertes(d){localStorage.setItem('alertes',JSON.stringify(d));}
 function getAgents(){return JSON.parse(localStorage.getItem('agents_data')||'[]');}
-function syncAgentsFirebase(){
-  if(!fbDb) return;
-  fbDb.ref('agents').once('value').then(snap=>{
-    const v=snap.val();
-    if(!v) return;
-    const fbAgents=Object.values(v);
+
+function chargerAgentsFirebase(){
+  const grid=document.getElementById('agentsGrid');
+  if(grid) grid.innerHTML='<div style="text-align:center;padding:40px;color:var(--gray)">⏳ Chargement...</div>';
+  if(!fbDb){renderAgents();return;}
+  // Lire les agents Firebase + les admins (qui sont aussi agents)
+  Promise.all([
+    fbDb.ref('agents').once('value'),
+    fbDb.ref('admins').once('value')
+  ]).then(([snapAgents, snapAdmins])=>{
     const local=getAgents();
-    // Fusionner : ajouter les agents Firebase qui ne sont pas en local
+    // Ajouter agents Firebase
+    const fbAgents=snapAgents.val()?Object.values(snapAgents.val()):[];
     fbAgents.forEach(fa=>{
-      if(!local.find(l=>String(l.id)===String(fa.id))){
-        local.push(fa);
-        if(fa.nom&&!AGENTS_LIST.includes(fa.nom)) AGENTS_LIST.push(fa.nom);
+      const idx=local.findIndex(l=>String(l.id)===String(fa.id));
+      if(idx===-1) local.push(fa);
+      else local[idx]={...local[idx],...fa};
+      if(fa.nom&&!AGENTS_LIST.includes(fa.nom)) AGENTS_LIST.push(fa.nom);
+    });
+    // Ajouter admins qui ne sont pas encore dans la liste des agents
+    const fbAdmins=snapAdmins.val()?Object.entries(snapAdmins.val()):[];
+    fbAdmins.forEach(([uid,a])=>{
+      if(!a.nom) return;
+      if(!local.find(l=>l.uid===uid)){
+        const agentId=parseInt(uid.slice(-8),16)||Date.now();
+        local.push({id:agentId,uid,nom:a.nom,role:a.poste||a.role||'Admin',email:a.email,actif:true,sigs_traites:0,dems_traitees:0,quartier:'—'});
+        if(!AGENTS_LIST.includes(a.nom)) AGENTS_LIST.push(a.nom);
       }
     });
     localStorage.setItem('agents_data',JSON.stringify(local));
-    if(document.getElementById('agents')?.classList.contains('active')) renderAgents();
-  });
+    renderAgents();
+  }).catch(()=>renderAgents());
 }
+
+// Appelé au démarrage Firebase pour pré-charger les noms dans AGENTS_LIST
+function syncAgentsFirebase(){chargerAgentsFirebase();}
 
 // ============================= INIT =============================
 let charts={};
@@ -1682,7 +1701,7 @@ function showSection(id,navEl){
   else if(id==='demandes') chargerDemandesFirebase();
   else if(id==='revenus') renderRevenus();
   else if(id==='alertes_admin') renderAlertesAdmin();
-  else if(id==='agents') renderAgents();
+  else if(id==='agents') chargerAgentsFirebase();
   else if(id==='accueil_admin') renderAccueilAdmin();
 }
 
@@ -1861,6 +1880,7 @@ async function createAdminUser(){
     errEl.style.display='none';
     showToast('✅ Compte créé et agent ajouté : '+nom);
     loadComptes();
+    chargerAgentsFirebase();
   }catch(e){
     errEl.style.display='block';
     errEl.textContent=e.code==='auth/email-already-in-use'
