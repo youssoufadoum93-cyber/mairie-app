@@ -151,6 +151,15 @@
     .agent-status{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:5px;}
     .agent-status.off{background:var(--gray);}
 
+    /* TAXES */
+    .badge-declaré{background:#fef3c7;color:#92400e;}
+    .badge-en_attente{background:#f1f5f9;color:#475569;}
+    .taxe-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:center;justify-content:center;}
+    .taxe-modal-box{background:#fff;border-radius:16px;padding:28px;width:90%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .taxe-form-label{font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px;display:block;margin-top:14px;}
+    .taxe-form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;}
+    .taxe-form-input:focus{border-color:var(--blue);}
+
     /* ALERTES ADMIN */
     .alerte-admin-item{display:flex;align-items:flex-start;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);}
     .alerte-admin-item:last-child{border-bottom:none;}
@@ -412,8 +421,11 @@
     <!-- =========== REVENUS =========== -->
     <div id="revenus" class="section">
       <div class="section-head">
-        <div><h2>💰 Revenus Fiscaux</h2><p>Suivi des paiements et taxes collectées</p></div>
-        <button class="tb-btn primary" onclick="exportCSV()">📥 Exporter CSV</button>
+        <div><h2>💰 Revenus Fiscaux</h2><p>Suivi des taxes et paiements citoyens</p></div>
+        <div style="display:flex;gap:8px">
+          <button class="tb-btn primary" onclick="ouvrirFormTaxe()">➕ Nouvel avis de taxe</button>
+          <button class="tb-btn" onclick="exportCSV()">📥 Exporter CSV</button>
+        </div>
       </div>
 
       <div class="revenus-kpi" id="revKpiRow"></div>
@@ -425,9 +437,9 @@
 
       <div class="table-card">
         <div class="table-header">
-          <div class="table-title">Historique des paiements</div>
+          <div class="table-title">Avis de taxes <span id="taxeDeclareBadge" style="display:none;background:#f59e0b;color:#fff;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px">0 à valider</span></div>
           <div class="table-actions">
-            <input class="search-input" type="text" placeholder="🔍 Citoyen ou référence..." oninput="filterPay(this.value)"/>
+            <input class="search-input" type="text" placeholder="🔍 Citoyen, téléphone..." oninput="filterPay(this.value)"/>
             <select class="filter-select" onchange="filterPayType(this.value)">
               <option value="tous">Tous les types</option>
               <option value="Taxe foncière">Taxe foncière</option>
@@ -438,15 +450,49 @@
             <select class="filter-select" onchange="filterPayStatus(this.value)">
               <option value="tous">Tous statuts</option>
               <option value="payé">✅ Payé</option>
+              <option value="declaré">🔔 Déclaré</option>
               <option value="en_attente">⏳ En attente</option>
             </select>
           </div>
         </div>
         <table>
-          <thead><tr><th>Réf.</th><th>Citoyen</th><th>Type de taxe</th><th>Montant</th><th>Date</th><th>Mode paiement</th><th>Statut</th><th>Reçu</th></tr></thead>
+          <thead><tr><th>Réf.</th><th>Citoyen</th><th>Téléphone</th><th>Type</th><th>Montant</th><th>Arrond.</th><th>Mode paiement</th><th>Statut</th><th>Action</th></tr></thead>
           <tbody id="payTableBody"></tbody>
         </table>
         <div class="pagination"><span id="payPagInfo">—</span></div>
+      </div>
+    </div>
+
+    <!-- MODAL CRÉER AVIS TAXE -->
+    <div class="taxe-modal-overlay" id="taxeModalOverlay">
+      <div class="taxe-modal-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div style="font-size:1.05rem;font-weight:800">💰 Nouvel avis de taxe</div>
+          <button onclick="fermerFormTaxe()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#6b7280">✕</button>
+        </div>
+        <label class="taxe-form-label">Nom du contribuable *</label>
+        <input class="taxe-form-input" type="text" id="taxeCitoyen" placeholder="Ex : Mamadou Koné"/>
+        <label class="taxe-form-label">Téléphone *</label>
+        <input class="taxe-form-input" type="tel" id="taxeTel" placeholder="Ex : 655123456"/>
+        <label class="taxe-form-label">Type de taxe *</label>
+        <select class="taxe-form-input" id="taxeType">
+          <option value="Taxe foncière">🏠 Taxe foncière</option>
+          <option value="Patente">💼 Patente (commerce)</option>
+          <option value="Taxe d'habitation">🏡 Taxe d'habitation</option>
+          <option value="Droits de place">🪑 Droits de place (marché)</option>
+        </select>
+        <label class="taxe-form-label">Montant (FCFA) *</label>
+        <input class="taxe-form-input" type="number" id="taxeMontant" placeholder="Ex : 25000" min="0"/>
+        <label class="taxe-form-label">Arrondissement</label>
+        <select class="taxe-form-input" id="taxeArr">
+          <option>1er Arrondissement</option><option>2ème Arrondissement</option><option>3ème Arrondissement</option>
+          <option>4ème Arrondissement</option><option>5ème Arrondissement</option><option>6ème Arrondissement</option>
+          <option>7ème Arrondissement</option><option>8ème Arrondissement</option><option>9ème Arrondissement</option>
+          <option>10ème Arrondissement</option>
+        </select>
+        <label class="taxe-form-label">Année fiscale</label>
+        <input class="taxe-form-input" type="number" id="taxeAnnee" value="2026"/>
+        <button class="btn-form btn-primary" style="width:100%;margin-top:20px;padding:13px" onclick="creerAvisTaxe()">✅ Créer l'avis de taxe</button>
       </div>
     </div>
 
@@ -554,18 +600,16 @@ function initData(){
     ];
     localStorage.setItem('demandes_admin',JSON.stringify(dem));
   }
-  if(!localStorage.getItem('paiements')){
-    const citoyens=['Mamadou Koné','Aïcha Diabaté','Ibrahim Coulibaly','Marie Ngozi','Ahmed Touré','Fatou Diallo','Paul Mwamba','Salimata Ba','Omar Cissé','Hawa Balde'];
-    const types=['Taxe foncière','Patente','Taxe d\'habitation','Droits de place'];
-    const modes=['Airtel Money','Moov Money','Espèces','Virement'];
-    const montants={'Taxe foncière':[25000,45000,75000,120000,150000],'Patente':[50000,75000,150000,250000,500000],'Taxe d\'habitation':[10000,15000,25000,35000],'Droits de place':[2000,3000,5000,7000,10000]};
-    const pays=[];
-    for(let i=1;i<=22;i++){
-      const type=types[Math.floor(Math.random()*types.length)];
-      const monts=montants[type];
-      pays.push({id:i,citoyen:citoyens[Math.floor(Math.random()*citoyens.length)],type_taxe:type,montant:monts[Math.floor(Math.random()*monts.length)],date:`2026-0${Math.floor(Math.random()*6)+1}-${String(Math.floor(Math.random()*28)+1).padStart(2,'0')}`,mode:modes[Math.floor(Math.random()*modes.length)],statut:Math.random()>.2?'payé':'en_attente',recu:`REC-2026-${String(i).padStart(3,'0')}`});
-    }
-    localStorage.setItem('paiements',JSON.stringify(pays));
+  if(!localStorage.getItem('taxes_admin')){
+    const arrs=['1er Arrondissement','2ème Arrondissement','3ème Arrondissement','4ème Arrondissement','5ème Arrondissement'];
+    const demo=[
+      {id:1001,ref:'TAX-2026-001',citoyen:'Mamadou Koné',tel:'655123456',type_taxe:'Taxe foncière',montant:45000,annee:'2026',arrondissement:'1er Arrondissement',statut:'payé',date_creation:'2026-01-10',date_paiement:'2026-02-03',mode_paiement:'Airtel Money',reference_paiement:'TXN-1234567',recu:'REC-2026-001'},
+      {id:1002,ref:'TAX-2026-002',citoyen:'Aïcha Diabaté',tel:'677234567',type_taxe:'Patente',montant:150000,annee:'2026',arrondissement:'2ème Arrondissement',statut:'payé',date_creation:'2026-01-15',date_paiement:'2026-02-14',mode_paiement:'Moov Money',reference_paiement:'TXN-7654321',recu:'REC-2026-002'},
+      {id:1003,ref:'TAX-2026-003',citoyen:'Ibrahim Coulibaly',tel:'699345678',type_taxe:'Taxe d\'habitation',montant:25000,annee:'2026',arrondissement:'3ème Arrondissement',statut:'declaré',date_creation:'2026-02-01',date_paiement:'2026-05-20',mode_paiement:'Espèces',reference_paiement:'',recu:'REC-2026-003'},
+      {id:1004,ref:'TAX-2026-004',citoyen:'Marie Ngozi',tel:'611456789',type_taxe:'Droits de place',montant:7000,annee:'2026',arrondissement:'4ème Arrondissement',statut:'en_attente',date_creation:'2026-03-05',date_paiement:null,mode_paiement:null,reference_paiement:null,recu:'REC-2026-004'},
+      {id:1005,ref:'TAX-2026-005',citoyen:'Ahmed Touré',tel:'622567890',type_taxe:'Taxe foncière',montant:75000,annee:'2026',arrondissement:'5ème Arrondissement',statut:'en_attente',date_creation:'2026-03-12',date_paiement:null,mode_paiement:null,reference_paiement:null,recu:'REC-2026-005'},
+    ];
+    localStorage.setItem('taxes_admin',JSON.stringify(demo));
   }
   if(!localStorage.getItem('alertes')){
     const today=new Date().toISOString().slice(0,10);
@@ -923,42 +967,111 @@ function saveDemComment(id){
   showToast('💾 Commentaire enregistré');
 }
 
+// ============================= TAXES =============================
+function getTaxes(){return JSON.parse(localStorage.getItem('taxes_admin')||'[]');}
+function saveTaxes(d){localStorage.setItem('taxes_admin',JSON.stringify(d));}
+
+function ouvrirFormTaxe(){document.getElementById('taxeModalOverlay').style.display='flex';}
+function fermerFormTaxe(){
+  document.getElementById('taxeModalOverlay').style.display='none';
+  ['taxeCitoyen','taxeTel','taxeMontant'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+function creerAvisTaxe(){
+  const citoyen=document.getElementById('taxeCitoyen').value.trim();
+  const tel=document.getElementById('taxeTel').value.trim();
+  const type=document.getElementById('taxeType').value;
+  const montant=parseInt(document.getElementById('taxeMontant').value)||0;
+  const arr=document.getElementById('taxeArr').value;
+  const annee=document.getElementById('taxeAnnee').value||'2026';
+  if(!citoyen||!tel||!montant){showToast('⚠️ Remplissez tous les champs obligatoires');return;}
+  const taxes=getTaxes();
+  const nb=taxes.length+1;
+  const avis={
+    id:Date.now(),ref:'TAX-'+annee+'-'+String(nb).padStart(3,'0'),
+    citoyen,tel,type_taxe:type,montant,annee,arrondissement:arr,
+    statut:'en_attente',date_creation:new Date().toISOString().slice(0,10),
+    date_paiement:null,mode_paiement:null,reference_paiement:null,
+    recu:'REC-'+annee+'-'+String(nb).padStart(3,'0')
+  };
+  taxes.unshift(avis);
+  saveTaxes(taxes);
+  if(fbDb) fbDb.ref('taxes/'+avis.id).set(avis).catch(()=>{});
+  fermerFormTaxe();
+  renderRevenus();
+  showToast('✅ Avis de taxe créé pour '+citoyen);
+}
+function validerPaiement(id){
+  const taxes=getTaxes();
+  const t=taxes.find(x=>String(x.id)===String(id));
+  if(!t)return;
+  t.statut='payé';
+  t.date_paiement=new Date().toISOString().slice(0,10);
+  saveTaxes(taxes);
+  if(fbDb){
+    fbDb.ref('taxes/'+id+'/statut').set('payé').catch(()=>{});
+    fbDb.ref('taxes/'+id+'/date_paiement').set(t.date_paiement).catch(()=>{});
+  }
+  renderRevenus();
+  showToast('✅ Paiement validé — '+t.citoyen);
+}
+function genererRecu(id){
+  const t=getTaxes().find(x=>String(x.id)===String(id));
+  if(!t)return;
+  const txt=`REÇU DE PAIEMENT — MAIRIE\n${'='.repeat(40)}\nRéférence : ${t.recu}\nContribuable : ${t.citoyen}\nTéléphone : ${t.tel}\nType de taxe : ${t.type_taxe}\nMontant : ${t.montant.toLocaleString('fr-FR')} FCFA\nArrondissement : ${t.arrondissement||'—'}\nAnnée fiscale : ${t.annee}\nDate de paiement : ${t.date_paiement||'—'}\nMode : ${t.mode_paiement||'—'}\nRéf. paiement : ${t.reference_paiement||'—'}\n${'='.repeat(40)}\nDocument officiel — Mairie Numérique`;
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=t.recu+'.txt';a.click();
+  showToast('📄 Reçu téléchargé');
+}
+
 // ============================= REVENUS =============================
 function renderRevenus(){
-  const pays=getPays();
-  const totalPaye=pays.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0);
-  const fonciere=pays.filter(p=>p.statut==='payé'&&p.type_taxe==='Taxe foncière').reduce((a,b)=>a+b.montant,0);
-  const patente=pays.filter(p=>p.statut==='payé'&&p.type_taxe==='Patente').reduce((a,b)=>a+b.montant,0);
-  const enAttente=pays.filter(p=>p.statut==='en_attente').reduce((a,b)=>a+b.montant,0);
+  const taxes=getTaxes();
+  const payes=taxes.filter(t=>t.statut==='payé');
+  const declares=taxes.filter(t=>t.statut==='declaré');
+  const attente=taxes.filter(t=>t.statut==='en_attente');
+  const totalPaye=payes.reduce((a,b)=>a+b.montant,0);
+  const fonciere=payes.filter(t=>t.type_taxe==='Taxe foncière').reduce((a,b)=>a+b.montant,0);
+  const patente=payes.filter(t=>t.type_taxe==='Patente').reduce((a,b)=>a+b.montant,0);
+  const montantAttente=attente.reduce((a,b)=>a+b.montant,0)+declares.reduce((a,b)=>a+b.montant,0);
+
   document.getElementById('revKpiRow').innerHTML=`
-    <div class="revenu-card"><div class="revenu-label">💰 Total collecté</div><div class="revenu-value">${totalPaye.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.statut==='payé').length} paiements</div></div>
-    <div class="revenu-card green"><div class="revenu-label">🏠 Taxe foncière</div><div class="revenu-value">${fonciere.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.type_taxe==='Taxe foncière').length} contribuables</div></div>
-    <div class="revenu-card orange"><div class="revenu-label">💼 Patente</div><div class="revenu-value">${patente.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.type_taxe==='Patente').length} entreprises</div></div>
-    <div class="revenu-card yellow"><div class="revenu-label">⏳ En attente</div><div class="revenu-value">${enAttente.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${pays.filter(p=>p.statut==='en_attente').length} à relancer</div></div>`;
+    <div class="revenu-card"><div class="revenu-label">💰 Total collecté</div><div class="revenu-value">${totalPaye.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${payes.length} paiement(s) validé(s)</div></div>
+    <div class="revenu-card green"><div class="revenu-label">🏠 Taxe foncière</div><div class="revenu-value">${fonciere.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${taxes.filter(t=>t.type_taxe==='Taxe foncière').length} avis</div></div>
+    <div class="revenu-card orange"><div class="revenu-label">💼 Patente</div><div class="revenu-value">${patente.toLocaleString('fr-FR')} FCFA</div><div class="revenu-sub">${taxes.filter(t=>t.type_taxe==='Patente').length} avis</div></div>
+    <div class="revenu-card yellow"><div class="revenu-label">🔔 À valider</div><div class="revenu-value">${declares.length}</div><div class="revenu-sub">${montantAttente.toLocaleString('fr-FR')} FCFA en attente</div></div>`;
 
-  // Full chart
+  const badge=document.getElementById('taxeDeclareBadge');
+  if(badge){badge.style.display=declares.length?'inline':'none';badge.textContent=declares.length+' à valider';}
+
   const mois=['Janv','Févr','Mars','Avr','Mai','Juin'];
-  const rev=[4850000,5200000,4100000,6300000,5800000,totalPaye];
+  const rev=[0,0,0,0,0,0];
+  payes.forEach(t=>{const m=parseInt((t.date_paiement||t.date_creation||'').split('-')[1]||0)-1;if(m>=0&&m<6)rev[m]+=t.montant;});
   if(charts.revFull) charts.revFull.destroy();
-  charts.revFull=new Chart(document.getElementById('chartRevenusFull'),{type:'line',data:{labels:mois,datasets:[{label:'Revenus FCFA',data:rev,borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.08)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#1a56db'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v>=1000000?`${(v/1000000).toFixed(1)}M`:`${(v/1000).toFixed(0)}K`}}}}});
+  charts.revFull=new Chart(document.getElementById('chartRevenusFull'),{type:'line',data:{labels:mois,datasets:[{label:'Revenus FCFA',data:rev,borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.08)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#1a56db'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1000000?`${(v/1000000).toFixed(1)}M`:`${(v/1000).toFixed(0)}K`}}}}});
 
-  let paysFiltered=pays.filter(p=>{
-    const ms=!payFilter.search||p.citoyen.toLowerCase().includes(payFilter.search.toLowerCase())||p.recu.toLowerCase().includes(payFilter.search.toLowerCase());
-    const mt=payFilter.type==='tous'||p.type_taxe===payFilter.type;
-    const mst=payFilter.statut==='tous'||p.statut===payFilter.statut;
+  let filtered=taxes.filter(t=>{
+    const ms=!payFilter.search||t.citoyen.toLowerCase().includes(payFilter.search.toLowerCase())||t.tel.includes(payFilter.search)||t.ref.toLowerCase().includes(payFilter.search.toLowerCase());
+    const mt=payFilter.type==='tous'||t.type_taxe===payFilter.type;
+    const mst=payFilter.statut==='tous'||t.statut===payFilter.statut;
     return ms&&mt&&mst;
   });
-  document.getElementById('payPagInfo').textContent=`${paysFiltered.length} transaction(s) — Total: ${paysFiltered.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0).toLocaleString('fr-FR')} FCFA`;
-  document.getElementById('payTableBody').innerHTML=paysFiltered.map(p=>`
-    <tr>
-      <td style="font-size:.75rem;font-weight:600;color:var(--blue)">${p.recu}</td>
-      <td class="td-name">${p.citoyen}</td>
-      <td style="font-size:.82rem">${p.type_taxe}</td>
-      <td style="font-weight:700;color:#1e293b">${p.montant.toLocaleString('fr-FR')} FCFA</td>
-      <td style="font-size:.8rem">${p.date}</td>
-      <td style="font-size:.8rem">${p.mode==='Airtel Money'?'📱 Airtel':p.mode==='Moov Money'?'📱 Moov':p.mode==='Espèces'?'💵 Espèces':'🏦 Virement'}</td>
-      <td><span class="badge badge-${p.statut}">${p.statut==='payé'?'✅ Payé':'⏳ En attente'}</span></td>
-      <td>${p.statut==='payé'?`<button class="action-btn blue" onclick="showToast('📄 Reçu ${p.recu} téléchargé')">📄 Reçu</button>`:'<button class="action-btn" onclick="showToast(\'📨 Relance envoyée par SMS\')">📨 Relancer</button>'}</td>
+  document.getElementById('payPagInfo').textContent=`${filtered.length} avis — Collecté: ${filtered.filter(t=>t.statut==='payé').reduce((a,b)=>a+b.montant,0).toLocaleString('fr-FR')} FCFA`;
+  const modeIco={['Airtel Money']:'📱 Airtel',['Moov Money']:'📱 Moov',['Espèces']:'💵 Espèces',['Virement']:'🏦 Virement'};
+  document.getElementById('payTableBody').innerHTML=filtered.map(t=>`
+    <tr${t.statut==='declaré'?' style="background:#fffbeb"':''}>
+      <td style="font-size:.75rem;font-weight:600;color:var(--blue)">${t.ref}</td>
+      <td class="td-name">${t.citoyen}</td>
+      <td style="font-size:.8rem;color:var(--gray)">${t.tel}</td>
+      <td style="font-size:.82rem">${t.type_taxe}</td>
+      <td style="font-weight:700">${t.montant.toLocaleString('fr-FR')} FCFA</td>
+      <td style="font-size:.78rem">${t.arrondissement||'—'}</td>
+      <td style="font-size:.8rem">${t.mode_paiement?modeIco[t.mode_paiement]||t.mode_paiement:'—'}${t.reference_paiement?`<br><span style="font-size:.7rem;color:var(--gray)">${t.reference_paiement}</span>`:''}</td>
+      <td><span class="badge badge-${t.statut}">${t.statut==='payé'?'✅ Payé':t.statut==='declaré'?'🔔 Déclaré':'⏳ En attente'}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        ${t.statut==='declaré'?`<button class="action-btn blue" onclick="validerPaiement(${t.id})">✅ Valider</button>`:''}
+        ${t.statut==='payé'?`<button class="action-btn blue" onclick="genererRecu(${t.id})">📄 Reçu</button>`:''}
+        ${t.statut==='en_attente'?`<button class="action-btn" onclick="showToast('📨 Relance envoyée à '+getTaxes().find(x=>x.id===${t.id})?.citoyen)">📨 Relancer</button>`:''}
+      </td>
     </tr>`).join('');
 }
 function filterPay(v){payFilter.search=v;renderRevenus();}
@@ -1267,6 +1380,23 @@ try{
         updateNavBadges();
         if(fusionnees.length>avant) showToast('📄 Nouvelle demande de document reçue !');
         if(document.getElementById('demandes').classList.contains('active')) renderDemTable();
+      }
+    });
+    // Écouter taxes
+    fbDb.ref('taxes').on('value',snap=>{
+      const v=snap.val();
+      if(v){
+        const nouvelles=Object.values(v).sort((a,b)=>b.id-a.id);
+        const locales=getTaxes();
+        // Fusionner : les données Firebase sont maîtresses
+        const fusion=nouvelles.map(n=>{
+          const loc=locales.find(l=>String(l.id)===String(n.id));
+          return loc?{...n,...(loc.statut==='payé'?{statut:'payé',date_paiement:loc.date_paiement}:{})}:n;
+        });
+        saveTaxes(fusion);
+        if(document.getElementById('revenus')?.classList.contains('active')) renderRevenus();
+        const declares=fusion.filter(t=>t.statut==='declaré');
+        if(declares.length>0) showToast('🔔 '+declares.length+' paiement(s) déclaré(s) à valider !');
       }
     });
     // Écouter alertes
