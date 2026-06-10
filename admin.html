@@ -494,7 +494,31 @@
         </select>
         <label class="taxe-form-label">Année fiscale</label>
         <input class="taxe-form-input" type="number" id="taxeAnnee" value="2026"/>
-        <button class="btn-form btn-primary" style="width:100%;margin-top:20px;padding:13px" onclick="creerAvisTaxe()">✅ Créer l'avis de taxe</button>
+
+        <!-- PAIEMENT IMMÉDIAT -->
+        <div style="margin-top:16px;padding:14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:700;font-size:.9rem;color:#15803d">
+            <input type="checkbox" id="paiementImmediat" onchange="togglePaiementImmediat(this.checked)" style="width:18px;height:18px;accent-color:#16a34a"/>
+            💵 Paiement reçu au guichet (encaissement immédiat)
+          </label>
+          <div id="paiementImmediatFields" style="display:none;margin-top:12px">
+            <label class="taxe-form-label">Mode de paiement</label>
+            <select class="taxe-form-input" id="taxeModePaiement">
+              <option value="Espèces">💵 Espèces au guichet</option>
+              <option value="Airtel Money">📱 Airtel Money</option>
+              <option value="Moov Money">📱 Moov Money</option>
+              <option value="Virement">🏦 Virement bancaire</option>
+              <option value="Chèque">📄 Chèque</option>
+            </select>
+            <label class="taxe-form-label">Référence / N° reçu caisse <span style="font-weight:400;color:#6b7280">(optionnel)</span></label>
+            <input class="taxe-form-input" type="text" id="taxeRefPaiement" placeholder="Ex: CAISSE-2026-001"/>
+            <div style="font-size:.78rem;color:#16a34a;margin-top:8px;padding:8px;background:#dcfce7;border-radius:8px">
+              ✅ Le reçu sera envoyé automatiquement dans l'app mobile du client
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-form btn-primary" style="width:100%;margin-top:16px;padding:13px" onclick="creerAvisTaxe()">✅ Créer et envoyer</button>
       </div>
     </div>
 
@@ -1048,6 +1072,10 @@ function fermerFormTaxe(){
   document.getElementById('taxeModalOverlay').style.display='none';
   ['taxeCitoyen','taxeTel','taxeMontant'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 }
+function togglePaiementImmediat(checked){
+  document.getElementById('paiementImmediatFields').style.display=checked?'block':'none';
+}
+
 function creerAvisTaxe(){
   const citoyen=document.getElementById('taxeCitoyen').value.trim();
   const tel=document.getElementById('taxeTel').value.trim();
@@ -1055,24 +1083,46 @@ function creerAvisTaxe(){
   const montant=parseInt(document.getElementById('taxeMontant').value)||0;
   const arr=document.getElementById('taxeArr').value;
   const annee=document.getElementById('taxeAnnee').value||'2026';
+  const immediat=document.getElementById('paiementImmediat').checked;
+  const mode=immediat?document.getElementById('taxeModePaiement').value:null;
+  const refPay=immediat?document.getElementById('taxeRefPaiement').value.trim():null;
   if(!citoyen||!tel||!montant){showToast('⚠️ Remplissez tous les champs obligatoires');return;}
   const taxes=getTaxes();
   const nb=taxes.length+1;
+  const today=new Date().toISOString().slice(0,10);
   const avis={
-    id:Date.now(),ref:'TAX-'+annee+'-'+String(nb).padStart(3,'0'),
+    id:Date.now(),
+    ref:'TAX-'+annee+'-'+String(nb).padStart(3,'0'),
     citoyen,tel,type_taxe:type,montant,annee,arrondissement:arr,
-    statut:'en_attente',date_creation:new Date().toISOString().slice(0,10),
-    date_paiement:null,mode_paiement:null,reference_paiement:null,
+    statut:immediat?'payé':'en_attente',
+    date_creation:today,
+    date_paiement:immediat?today:null,
+    mode_paiement:mode,
+    reference_paiement:refPay||null,
     recu:'REC-'+annee+'-'+String(nb).padStart(3,'0')
   };
   taxes.unshift(avis);
   saveTaxes(taxes);
+  // Réinitialiser le formulaire paiement immédiat
+  document.getElementById('paiementImmediat').checked=false;
+  document.getElementById('paiementImmediatFields').style.display='none';
   if(fbDb){
     fbDb.ref('taxes/'+avis.id).set(avis)
-      .then(()=>showToast('✅ Avis envoyé à Firebase — '+citoyen+' ('+tel+')'))
-      .catch(e=>showToast('⚠️ Sauvegardé localement uniquement — Firebase : '+e.message));
+      .then(()=>{
+        if(immediat){
+          showToast('✅ Paiement enregistré et reçu envoyé à '+citoyen);
+          // Proposer WhatsApp
+          setTimeout(()=>{
+            if(confirm('Envoyer le reçu par WhatsApp à '+citoyen+' ('+tel+') ?'))
+              envoyerRecuWhatsApp(avis.id);
+          },400);
+        } else {
+          showToast('✅ Avis de taxe envoyé à '+citoyen+' ('+tel+')');
+        }
+      })
+      .catch(e=>showToast('⚠️ Sauvegardé localement — Firebase: '+e.message));
   } else {
-    showToast('⚠️ Firebase non connecté — avis sauvegardé localement seulement');
+    showToast('⚠️ Firebase non connecté — sauvegardé localement');
   }
   fermerFormTaxe();
   renderRevenus();
