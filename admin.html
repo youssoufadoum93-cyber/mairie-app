@@ -424,6 +424,7 @@
         <div><h2>💰 Revenus Fiscaux</h2><p>Suivi des taxes et paiements citoyens</p></div>
         <div style="display:flex;gap:8px">
           <button class="tb-btn primary" onclick="ouvrirFormTaxe()">➕ Nouvel avis de taxe</button>
+          <button class="tb-btn" onclick="syncTaxesFirebase()" style="background:#f59e0b;color:#fff;border:none">☁️ Sync Firebase</button>
           <button class="tb-btn" onclick="exportCSV()">📥 Exporter CSV</button>
         </div>
       </div>
@@ -970,6 +971,17 @@ function saveDemComment(id){
 // ============================= TAXES =============================
 function getTaxes(){return JSON.parse(localStorage.getItem('taxes_admin')||'[]');}
 function saveTaxes(d){localStorage.setItem('taxes_admin',JSON.stringify(d));}
+
+function syncTaxesFirebase(){
+  if(!fbDb){showToast('⚠️ Firebase non connecté');return;}
+  const taxes=getTaxes();
+  if(!taxes.length){showToast('ℹ️ Aucune taxe à synchroniser');return;}
+  showToast('⏳ Synchronisation de '+taxes.length+' taxe(s)…');
+  const promises=taxes.map(t=>fbDb.ref('taxes/'+t.id).set(t));
+  Promise.all(promises)
+    .then(()=>showToast('✅ '+taxes.length+' taxe(s) synchronisée(s) vers Firebase'))
+    .catch(e=>showToast('❌ Erreur sync : '+e.message));
+}
 
 function ouvrirFormTaxe(){document.getElementById('taxeModalOverlay').style.display='flex';}
 function fermerFormTaxe(){

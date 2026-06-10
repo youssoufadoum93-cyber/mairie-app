@@ -1558,11 +1558,13 @@ function actualiserTaxes(){
       showToast('✅ '+mine.length+' taxe(s) trouvée(s)');
     } else {
       saveTaxesMobile([]);
+      const tels=all.map(t=>String(t.tel).replace(/\s/g,'')).join(', ')||'(vide)';
       const c=document.getElementById('taxesListContainer');
       if(c) c.innerHTML=`<div style="background:#fef2f2;border-radius:10px;padding:20px;margin-top:8px">
-        <div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ Aucune taxe trouvée</div>
-        <div style="font-size:.82rem;color:#374151;margin-bottom:12px">Numéro recherché : <strong>${user.tel}</strong></div>
-        <div style="font-size:.8rem;color:#6b7280">Vérifiez que l'administrateur a bien utilisé ce numéro exact lors de la création de l'avis de taxe. Les espaces ne comptent pas.</div>
+        <div style="font-weight:700;color:#dc2626;margin-bottom:10px">⚠️ Aucune taxe trouvée pour votre numéro</div>
+        <div style="font-size:.82rem;color:#374151;margin-bottom:6px">🔍 Votre numéro : <strong>${user.tel}</strong></div>
+        <div style="font-size:.82rem;color:#374151;margin-bottom:12px">📋 Numéros dans Firebase (${all.length}) : <strong>${tels}</strong></div>
+        <div style="font-size:.78rem;color:#6b7280">Si votre numéro n'apparaît pas dans la liste ci-dessus, demandez à l'admin de cliquer sur ☁️ Sync Firebase puis rechargez.</div>
       </div>`;
     }
   }).catch(e=>{
