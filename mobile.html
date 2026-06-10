@@ -1341,7 +1341,7 @@ function renderHome(){
 function renderAlertes(){
   const alertes=getAlertes();
   const quartier=document.getElementById('alertQuartier').value;
-  const urgentes=alertes.filter(a=>a.type==='urgence'&&(a.quartiers.includes('tous')||a.quartiers.includes(quartier)||quartier==='tous'));
+  const urgentes=alertes.filter(a=>a.type==='urgence'&&(quartier==='tous'||(a.quartiers||[]).includes('tous')||(a.quartiers||[]).includes(quartier)));
   const banner=document.getElementById('urgentBannerScreen');
   if(urgentes.length){
     const u=urgentes[0];
@@ -1350,7 +1350,7 @@ function renderAlertes(){
 
   let filtered=alertes.filter(a=>{
     const typeOk=filterAlerte_==='tous'||a.type===filterAlerte_;
-    const qOk=quartier==='tous'||a.quartiers.includes('tous')||a.quartiers.includes(quartier);
+    const qOk=quartier==='tous'||(a.quartiers||[]).includes('tous')||(a.quartiers||[]).includes(quartier);
     return typeOk&&qOk;
   });
   const c=document.getElementById('alertListContainer');
@@ -1363,7 +1363,7 @@ function renderAlertes(){
         <div class="alerte-head"><span class="atbadge ${a.type}">${ta?.ico} ${ta?.label}</span><span style="font-size:.71rem;color:var(--text-secondary)">${a.date} ${a.heure}</span></div>
         <div class="alerte-title">${a.lu?'':'<span class="new-dot"></span>'}${a.titre}</div>
         <div class="alerte-body">${a.msg}</div>
-        <div class="alerte-meta">📍 ${a.quartiers.includes('tous')?'Toute la commune':a.quartiers.join(', ')}</div>
+        <div class="alerte-meta">📍 ${(a.quartiers||[]).includes('tous')?'Toute la commune':(a.quartiers||[]).join(', ')||'Toute la commune'}</div>
       </div></div>`;
   }).join('');
 }
@@ -1386,7 +1386,7 @@ function openAlerteModal(id){
     <div style="display:flex;flex-direction:column;gap:6px;font-size:.82rem">
       <div>📅 ${a.date} ${a.heure?'à '+a.heure:''}</div>
       ${a.lien?`<div>📞 Contact d'urgence : <strong>${a.lien}</strong></div>`:''}
-      <div>📍 ${a.quartiers.includes('tous')?'Toute la commune':a.quartiers.join(', ')}</div>
+      <div>📍 ${(a.quartiers||[]).includes('tous')?'Toute la commune':(a.quartiers||[]).join(', ')||'Toute la commune'}</div>
     </div>
     ${a.type==='urgence'?`<div style="background:var(--red-light);border-radius:10px;padding:12px;margin-top:14px;font-size:.82rem;color:var(--red);font-weight:600">⚠️ Alerte officielle. Suivez les instructions des autorités.</div>`:''}`;
   document.getElementById('alertModal').classList.add('show');
@@ -1416,7 +1416,7 @@ function showScreen(id){
   if(idx>=0&&idx!==2) document.querySelectorAll('.bnav')[idx].classList.add('active');
   document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});
   if(id==='doleances') renderDolList();
-  if(id==='alertes'){renderAlertes();if(fbDb)fbDb.ref('alertes').once('value').then(snap=>{const v=snap.val();if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);const loc=getAlertes();l.forEach(a=>{const x=loc.find(y=>String(y.id)===String(a.id));if(x)a.lu=x.lu;});localStorage.setItem('alertes',JSON.stringify(l));updateBadges();renderAlertes();}}).catch(()=>{});}
+  if(id==='alertes'){renderAlertes();if(fbDb)fbDb.ref('alertes').once('value').then(snap=>{const v=snap.val();if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);l.forEach(a=>{if(a.quartiers&&!Array.isArray(a.quartiers))a.quartiers=Object.values(a.quartiers);if(!a.quartiers)a.quartiers=['tous'];});const loc=getAlertes();l.forEach(a=>{const x=loc.find(y=>String(y.id)===String(a.id));if(x)a.lu=x.lu;});localStorage.setItem('alertes',JSON.stringify(l));updateBadges();renderAlertes();}}).catch(()=>{});}
   if(id==='demarches'){
     document.getElementById('dem-demander').style.display='block';
     document.getElementById('dem-suivi').style.display='none';
@@ -1738,15 +1738,19 @@ function actualiserAlertes(){
     const v=snap.val();
     if(v){
       const l=Object.values(v).sort((a,b)=>b.id-a.id);
+      l.forEach(a=>{
+        if(a.quartiers&&!Array.isArray(a.quartiers)) a.quartiers=Object.values(a.quartiers);
+        if(!a.quartiers) a.quartiers=['tous'];
+      });
       const local=getAlertes();
       l.forEach(a=>{const loc=local.find(x=>String(x.id)===String(a.id));if(loc)a.lu=loc.lu;});
       localStorage.setItem('alertes',JSON.stringify(l));
       updateBadges();renderAlertes();
-      showToast('✅ Alertes mises à jour');
+      showToast('✅ '+l.length+' alerte(s) chargée(s)');
     } else {
-      showToast('ℹ️ Aucune alerte');
+      showToast('ℹ️ Aucune alerte dans Firebase');
     }
-  }).catch(()=>showToast('❌ Erreur de connexion'));
+  }).catch(e=>showToast('❌ Erreur : '+e.message));
 }
 
 // ========================= NOTIFICATION STATUT =========================
@@ -1825,20 +1829,20 @@ function initFirebase(){
       const v=snap.val();
       if(v){
         const l=Object.values(v).sort((a,b)=>b.id-a.id);
+        // Firebase stocke les tableaux comme objets {0:'val',1:'val'} — normaliser
+        l.forEach(a=>{
+          if(a.quartiers&&!Array.isArray(a.quartiers)) a.quartiers=Object.values(a.quartiers);
+          if(!a.quartiers) a.quartiers=['tous'];
+        });
         const local=getAlertes();
         const localIds=new Set(local.map(a=>String(a.id)));
-        // Alertes vraiment nouvelles (absentes du localStorage avant)
         const nouvelles=l.filter(a=>!localIds.has(String(a.id)));
-        // Conserver l'état lu/non-lu
         l.forEach(a=>{const loc=local.find(x=>String(x.id)===String(a.id));if(loc)a.lu=loc.lu;});
         localStorage.setItem('alertes',JSON.stringify(l));
         updateBadges();
         if(document.getElementById('screen-alertes')?.classList.contains('active')) renderAlertes();
         if(document.getElementById('screen-home')?.classList.contains('active')) renderHome();
-        // Notifier si nouvelles alertes (même au premier chargement après fermeture)
-        if(nouvelles.length>0){
-          afficherNotifAlerte(nouvelles[0]);
-        }
+        if(nouvelles.length>0) afficherNotifAlerte(nouvelles[0]);
       }
     });
 
