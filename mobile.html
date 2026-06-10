@@ -581,6 +581,7 @@
     <!-- ======= ALERTES ======= -->
     <div id="screen-alertes" class="screen">
       <div id="urgentBannerScreen"></div>
+      <button onclick="actualiserAlertes()" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px">🔄 Actualiser les alertes</button>
       <div class="quartier-pill">
         <span>📍</span>
         <select id="alertQuartier" onchange="renderAlertes()">
@@ -845,16 +846,7 @@ function getDols(){
 function saveDols(d){localStorage.setItem('doleances',JSON.stringify(d));}
 function getAlertes(){
   const r=localStorage.getItem('alertes');
-  if(r) return JSON.parse(r);
-  const today=new Date().toISOString().slice(0,10);
-  const demo=[
-    {id:1,type:'urgence',titre:'Alerte inondation — Quartier Nord',msg:'Des pluies importantes prévues cette nuit. Les habitants du Quartier Nord doivent évacuer les zones basses. Rejoignez l\'abri à l\'école primaire.',quartiers:['Quartier Nord','Quartier Sud'],date:today,heure:'18:30',lien:'1234',lu:false},
-    {id:2,type:'alerte',titre:'Interruption d\'eau potable demain',msg:'Coupure d\'eau prévue de 8h à 14h pour maintenance du réseau. Faites des réserves ce soir.',quartiers:['Centre-ville','Marché Central'],date:today,heure:'10:00',lien:'',lu:false},
-    {id:3,type:'info',titre:'Bureau état civil rénové — Ouverture',msg:'Le bureau d\'état civil est désormais accessible du lundi au vendredi de 8h à 16h.',quartiers:['tous'],date:today,heure:'08:00',lien:'',lu:true},
-    {id:4,type:'evenement',titre:'Fête de la commune — 15 juin',msg:'Concert, expositions artisanales, jeux pour enfants. Entrée libre pour tous les citoyens.',quartiers:['tous'],date:today,heure:'09:00',lien:'',lu:true},
-  ];
-  localStorage.setItem('alertes',JSON.stringify(demo));
-  return demo;
+  return r?JSON.parse(r):[];
 }
 function saveAlertes(d){localStorage.setItem('alertes',JSON.stringify(d));}
 function getUser(){return JSON.parse(localStorage.getItem('mairieUser')||'null');}
@@ -1424,7 +1416,7 @@ function showScreen(id){
   if(idx>=0&&idx!==2) document.querySelectorAll('.bnav')[idx].classList.add('active');
   document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});
   if(id==='doleances') renderDolList();
-  if(id==='alertes') renderAlertes();
+  if(id==='alertes'){renderAlertes();if(fbDb)fbDb.ref('alertes').once('value').then(snap=>{const v=snap.val();if(v){const l=Object.values(v).sort((a,b)=>b.id-a.id);const loc=getAlertes();l.forEach(a=>{const x=loc.find(y=>String(y.id)===String(a.id));if(x)a.lu=x.lu;});localStorage.setItem('alertes',JSON.stringify(l));updateBadges();renderAlertes();}}).catch(()=>{});}
   if(id==='demarches'){
     document.getElementById('dem-demander').style.display='block';
     document.getElementById('dem-suivi').style.display='none';
@@ -1723,6 +1715,40 @@ function ouvrirDetailDemande(id){
   document.getElementById('modal').classList.add('show');
 }
 
+// ========================= NOTIFICATION ALERTE =========================
+function afficherNotifAlerte(alerte){
+  const types={urgence:{ico:'🚨',bg:'#dc2626'},alerte:{ico:'⚠️',bg:'#ea580c'},info:{ico:'ℹ️',bg:'#1a56db'},travaux:{ico:'🚧',bg:'#d97706'}};
+  const t=types[alerte.type]||types.info;
+  let notif=document.getElementById('notifAlerte');
+  if(!notif){
+    notif=document.createElement('div');
+    notif.id='notifAlerte';
+    notif.style.cssText='position:fixed;top:calc(var(--safe-top)+8px);left:10px;right:10px;color:#fff;padding:14px 16px;border-radius:14px;font-size:.88rem;font-weight:600;z-index:900;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;align-items:center;gap:10px;cursor:pointer;';
+    document.getElementById('app').appendChild(notif);
+  }
+  notif.style.background=t.bg;
+  notif.innerHTML=`<span style="font-size:1.3rem">${t.ico}</span><span style="flex:1">${alerte.titre}</span><span onclick="document.getElementById('notifAlerte').style.display='none';event.stopPropagation()" style="opacity:.8;font-size:1.1rem;padding:4px">✕</span>`;
+  notif.onclick=()=>{showScreen('alertes');notif.style.display='none';};
+  notif.style.display='flex';
+  setTimeout(()=>{if(notif)notif.style.display='none';},8000);
+}
+function actualiserAlertes(){
+  if(!fbDb){showToast('⚠️ Firebase non connecté');return;}
+  fbDb.ref('alertes').once('value').then(snap=>{
+    const v=snap.val();
+    if(v){
+      const l=Object.values(v).sort((a,b)=>b.id-a.id);
+      const local=getAlertes();
+      l.forEach(a=>{const loc=local.find(x=>String(x.id)===String(a.id));if(loc)a.lu=loc.lu;});
+      localStorage.setItem('alertes',JSON.stringify(l));
+      updateBadges();renderAlertes();
+      showToast('✅ Alertes mises à jour');
+    } else {
+      showToast('ℹ️ Aucune alerte');
+    }
+  }).catch(()=>showToast('❌ Erreur de connexion'));
+}
+
 // ========================= NOTIFICATION STATUT =========================
 function afficherNotifStatut(msg){
   // Notification persistante (reste 6 secondes, plus visible)
@@ -1799,17 +1825,20 @@ function initFirebase(){
       const v=snap.val();
       if(v){
         const l=Object.values(v).sort((a,b)=>b.id-a.id);
-        const avant=_fbAlerteCount;
-        _fbAlerteCount=l.length;
-        // Conserver l'état lu/non-lu depuis localStorage
         const local=getAlertes();
-        l.forEach(a=>{const loc=local.find(x=>x.id===a.id);if(loc)a.lu=loc.lu;});
+        const localIds=new Set(local.map(a=>String(a.id)));
+        // Alertes vraiment nouvelles (absentes du localStorage avant)
+        const nouvelles=l.filter(a=>!localIds.has(String(a.id)));
+        // Conserver l'état lu/non-lu
+        l.forEach(a=>{const loc=local.find(x=>String(x.id)===String(a.id));if(loc)a.lu=loc.lu;});
         localStorage.setItem('alertes',JSON.stringify(l));
         updateBadges();
         if(document.getElementById('screen-alertes')?.classList.contains('active')) renderAlertes();
         if(document.getElementById('screen-home')?.classList.contains('active')) renderHome();
-        // Notification si nouvelle alerte arrivée
-        if(avant>0 && l.length>avant) showToast('🔔 Nouvelle alerte de la mairie !');
+        // Notifier si nouvelles alertes (même au premier chargement après fermeture)
+        if(nouvelles.length>0){
+          afficherNotifAlerte(nouvelles[0]);
+        }
       }
     });
 
