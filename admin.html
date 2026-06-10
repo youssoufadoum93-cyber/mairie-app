@@ -829,7 +829,7 @@ function updateNavBadges(){
 function renderAccueilAdmin(){
   const sigs=getSigs(), dems=getDems(), pays=getPays(), dols=getDoleances();
   const total=sigs.length, nouveau=sigs.filter(s=>s.statut==='nouveau').length;
-  const en_cours=sigs.filter(s=>s.statut==='en_cours').length, resolu=sigs.filter(s=>s.statut==='résolu').length;
+  const en_cours=sigs.filter(s=>s.statut==='en_cours').length, resolu=sigs.filter(s=>s.statut==='resolu'||s.statut==='résolu').length;
   const totalPaye=pays.filter(p=>p.statut==='payé').reduce((a,b)=>a+b.montant,0);
   const demsEnAttente=dems.filter(d=>d.statut==='en_attente').length;
   const dolsNouveau=dols.filter(d=>d.statut==='nouveau').length;
