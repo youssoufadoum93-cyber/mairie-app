@@ -492,9 +492,9 @@
 
       <div class="quick-grid">
         <button class="quick-item" onclick="openForm()"><div class="q-ico">📝</div><div class="q-lbl">Nouvelle doléance</div></button>
-        <button class="quick-item" onclick="showScreen('demarches')"><div class="q-ico">📄</div><div class="q-lbl">Demande document</div></button>
+        <button class="quick-item" onclick="ouvrirSignalement()"><div class="q-ico">🚨</div><div class="q-lbl">Signalement</div></button>
         <button class="quick-item" onclick="showScreen('alertes')"><div class="q-ico">🔔</div><div class="q-lbl">Alertes</div></button>
-        <button class="quick-item" onclick="showScreen('profil')"><div class="q-ico">👤</div><div class="q-lbl">Mon compte</div></button>
+        <button class="quick-item" onclick="showScreen('demarches')"><div class="q-ico">📄</div><div class="q-lbl">Documents</div></button>
       </div>
 
       <div class="card" id="urgentHomeCard" style="display:none;background:var(--red);color:#fff;padding:14px 16px"></div>
@@ -509,10 +509,62 @@
     <!-- ======= DOLÉANCES ======= -->
     <div id="screen-doleances" class="screen">
       <div class="dol-tabs">
-        <div class="dtab active" onclick="switchDolTab(this,'mes')">Mes doléances</div>
-        <div class="dtab" onclick="switchDolTab(this,'toutes')">Toutes</div>
+        <div class="dtab active" onclick="switchDolTab(this,'mes')">📝 Doléances</div>
+        <div class="dtab" onclick="switchDolTab(this,'signalements')">🚨 Signalements</div>
       </div>
       <div id="dolListContainer"></div>
+
+      <!-- FORMULAIRE SIGNALEMENT -->
+      <div id="signalForm" style="display:none">
+        <div style="background:#fff;border-radius:16px;padding:18px;margin-bottom:12px">
+          <div style="font-weight:800;font-size:1rem;margin-bottom:4px">🚨 Nouveau signalement</div>
+          <div style="font-size:.78rem;color:#6b7280;margin-bottom:16px">Signalez un problème dans votre quartier</div>
+
+          <label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:6px">Catégorie *</label>
+          <select id="signalCateg" style="width:100%;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;margin-bottom:14px">
+            <option value="route">🛣️ Route dégradée / nid-de-poule</option>
+            <option value="eclairage">💡 Éclairage public en panne</option>
+            <option value="dechets">🗑️ Dépôt sauvage / déchets</option>
+            <option value="eau">💧 Problème d'eau / canalisation</option>
+            <option value="arbre">🌳 Arbre dangereux / chute</option>
+            <option value="inondation">🌊 Inondation / évacuation</option>
+            <option value="securite">🚔 Problème de sécurité</option>
+            <option value="autre">📌 Autre problème</option>
+          </select>
+
+          <label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:6px">Description *</label>
+          <textarea id="signalDesc" placeholder="Décrivez le problème en détail…" rows="3" style="width:100%;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;resize:none;margin-bottom:14px;box-sizing:border-box"></textarea>
+
+          <label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:6px">Adresse / lieu *</label>
+          <input id="signalLieu" type="text" placeholder="Ex: Rue 40, près du marché central" style="width:100%;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;margin-bottom:14px;box-sizing:border-box"/>
+
+          <label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:6px">Arrondissement</label>
+          <select id="signalArr" style="width:100%;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;margin-bottom:14px">
+            <option value="">-- Sélectionner --</option>
+            <option>1er Arrondissement</option><option>2ème Arrondissement</option>
+            <option>3ème Arrondissement</option><option>4ème Arrondissement</option>
+            <option>5ème Arrondissement</option><option>6ème Arrondissement</option>
+            <option>7ème Arrondissement</option><option>8ème Arrondissement</option>
+            <option>9ème Arrondissement</option><option>10ème Arrondissement</option>
+          </select>
+
+          <label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:8px">Photo (optionnel)</label>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button onclick="prendrePhotoSignal('camera')" style="flex:1;padding:10px;background:#f1f5f9;border:1.5px dashed #94a3b8;border-radius:10px;font-size:.82rem;cursor:pointer">📷 Caméra</button>
+            <button onclick="prendrePhotoSignal('gallery')" style="flex:1;padding:10px;background:#f1f5f9;border:1.5px dashed #94a3b8;border-radius:10px;font-size:.82rem;cursor:pointer">🖼️ Galerie</button>
+          </div>
+          <div id="signalPhotoPreview" style="display:none;margin-bottom:14px;text-align:center">
+            <img id="signalPhotoImg" style="max-width:100%;border-radius:10px;max-height:180px"/>
+            <button onclick="supprimerPhotoSignal()" style="display:block;margin:6px auto 0;font-size:.75rem;color:#dc2626;background:none;border:none;cursor:pointer">🗑️ Supprimer la photo</button>
+          </div>
+          <input id="signalPhotoInput" type="file" accept="image/*" style="display:none" onchange="onSignalPhotoChosen(this)"/>
+
+          <button onclick="envoyerSignalement()" style="width:100%;padding:14px;background:#dc2626;color:#fff;border:none;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:4px">🚨 Envoyer le signalement</button>
+        </div>
+      </div>
+
+      <!-- LISTE SIGNALEMENTS -->
+      <div id="signalListContainer" style="display:none"></div>
     </div>
 
     <!-- ======= DÉMARCHES ======= -->
@@ -1278,7 +1330,124 @@ function afterSuccess(where){
 let dolTabMode='mes';
 function switchDolTab(el,mode){
   document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');dolTabMode=mode;renderDolList();
+  el.classList.add('active');
+  dolTabMode=mode;
+  document.getElementById('dolListContainer').style.display=mode==='signalements'?'none':'block';
+  document.getElementById('signalForm').style.display='none';
+  document.getElementById('signalListContainer').style.display=mode==='signalements'?'block':'none';
+  if(mode==='signalements') renderSignalements();
+  else renderDolList();
+}
+
+// ========================= SIGNALEMENTS =========================
+let _signalPhoto=null;
+function getSignalements(){return JSON.parse(localStorage.getItem('mes_signalements')||'[]');}
+function saveSignalements(d){localStorage.setItem('mes_signalements',JSON.stringify(d));}
+
+const SIGNAL_CATS={route:{ico:'🛣️',label:'Route dégradée'},eclairage:{ico:'💡',label:'Éclairage en panne'},dechets:{ico:'🗑️',label:'Dépôt sauvage'},eau:{ico:'💧',label:'Problème d\'eau'},arbre:{ico:'🌳',label:'Arbre dangereux'},inondation:{ico:'🌊',label:'Inondation'},securite:{ico:'🚔',label:'Sécurité'},autre:{ico:'📌',label:'Autre'}};
+const SIGNAL_STATUTS={nouveau:{ico:'🔴',label:'Nouveau',col:'#dc2626'},en_cours:{ico:'🟡',label:'En cours',col:'#d97706'},resolu:{ico:'🟢',label:'Résolu',col:'#16a34a'}};
+
+function ouvrirSignalement(){
+  showScreen('doleances');
+  // Activer l'onglet signalements
+  const tabs=document.querySelectorAll('.dtab');
+  tabs.forEach(t=>t.classList.remove('active'));
+  tabs[1]?.classList.add('active');
+  document.getElementById('dolListContainer').style.display='none';
+  document.getElementById('signalListContainer').style.display='none';
+  document.getElementById('signalForm').style.display='block';
+}
+
+function prendrePhotoSignal(src){
+  const inp=document.getElementById('signalPhotoInput');
+  inp.setAttribute('capture', src==='camera'?'environment':'');
+  inp.click();
+}
+function onSignalPhotoChosen(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const max=600; let w=img.width,h=img.height;
+      if(w>max){h=Math.round(h*max/w);w=max;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      _signalPhoto=canvas.toDataURL('image/jpeg',0.7);
+      document.getElementById('signalPhotoImg').src=_signalPhoto;
+      document.getElementById('signalPhotoPreview').style.display='block';
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function supprimerPhotoSignal(){
+  _signalPhoto=null;
+  document.getElementById('signalPhotoPreview').style.display='none';
+  document.getElementById('signalPhotoInput').value='';
+}
+
+function envoyerSignalement(){
+  const categ=document.getElementById('signalCateg').value;
+  const desc=document.getElementById('signalDesc').value.trim();
+  const lieu=document.getElementById('signalLieu').value.trim();
+  const arr=document.getElementById('signalArr').value;
+  const user=getUser();
+  if(!desc){showToast('⚠️ Décrivez le problème');return;}
+  if(!lieu){showToast('⚠️ Indiquez le lieu');return;}
+  const id=Date.now();
+  const ref='SIG-'+new Date().getFullYear()+'-'+String(getSignalements().length+1).padStart(3,'0');
+  const sig={
+    id, ref, categ, desc, lieu,
+    arrondissement:arr||'Non précisé',
+    citoyen:user?.nom||'Anonyme',
+    tel:user?.tel||'',
+    photo:_signalPhoto||null,
+    statut:'nouveau',
+    date:new Date().toISOString().slice(0,10)
+  };
+  const sigs=getSignalements();
+  sigs.unshift(sig);
+  saveSignalements(sigs);
+  if(fbDb) fbDb.ref('signalements/'+id).set({...sig,photo:sig.photo?'[photo]':null}).catch(()=>{});
+  // Vider le formulaire
+  document.getElementById('signalDesc').value='';
+  document.getElementById('signalLieu').value='';
+  supprimerPhotoSignal();
+  // Passer à la liste
+  document.getElementById('signalForm').style.display='none';
+  document.getElementById('signalListContainer').style.display='block';
+  renderSignalements();
+  showToast('✅ Signalement envoyé à la mairie — Réf: '+ref);
+}
+
+function renderSignalements(){
+  const sigs=getSignalements();
+  const c=document.getElementById('signalListContainer');
+  const btnNouv=`<button onclick="document.getElementById('signalForm').style.display='block';document.getElementById('signalListContainer').style.display='none'" style="width:100%;padding:12px;background:#dc2626;color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:700;cursor:pointer;margin-bottom:14px">🚨 Nouveau signalement</button>`;
+  if(!sigs.length){
+    c.innerHTML=btnNouv+`<div style="text-align:center;padding:32px 16px;color:var(--text-secondary)"><div style="font-size:2.5rem;margin-bottom:10px">🚨</div><div style="font-weight:600;margin-bottom:6px">Aucun signalement</div><div style="font-size:.82rem">Signalez un problème dans votre quartier</div></div>`;
+    return;
+  }
+  c.innerHTML=btnNouv+sigs.map(s=>{
+    const cat=SIGNAL_CATS[s.categ]||SIGNAL_CATS.autre;
+    const st=SIGNAL_STATUTS[s.statut]||SIGNAL_STATUTS.nouveau;
+    return`<div class="card" style="margin-bottom:12px;padding:16px;border-left:4px solid ${st.col}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--blue)">${s.ref}</div>
+        <span style="font-size:.72rem;font-weight:700;color:${st.col};background:${st.col}18;padding:3px 8px;border-radius:8px">${st.ico} ${st.label}</span>
+      </div>
+      <div style="font-size:.9rem;font-weight:700;margin-bottom:4px">${cat.ico} ${cat.label}</div>
+      <div style="font-size:.82rem;color:#374151;margin-bottom:6px">${s.desc}</div>
+      <div style="font-size:.75rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:2px">
+        <span>📍 ${s.lieu}${s.arrondissement&&s.arrondissement!=='Non précisé'?' · '+s.arrondissement:''}</span>
+        <span>📅 ${s.date}</span>
+        ${s.photo?`<span>📷 Photo jointe</span>`:''}
+      </div>
+      ${s.photo?`<img src="${s.photo}" style="width:100%;border-radius:10px;margin-top:10px;max-height:160px;object-fit:cover"/>`:''}
+    </div>`;
+  }).join('');
 }
 function renderDolList(){
   const dols=getDols();
@@ -2085,6 +2254,25 @@ function initFirebase(){
         if(document.getElementById('screen-doleances')?.classList.contains('active')) renderDolList();
         if(document.getElementById('screen-home')?.classList.contains('active')) renderHome();
       }
+    });
+
+    // Écouter les mises à jour de statut des signalements
+    fbDb.ref('signalements').on('value',snap=>{
+      const v=snap.val(); if(!v) return;
+      const user=getUser(); if(!user||!user.tel) return;
+      const mine=Object.values(v).filter(s=>String(s.tel).replace(/\s/g,'')===String(user.tel).replace(/\s/g,''));
+      if(!mine.length) return;
+      const local=getSignalements();
+      mine.forEach(fb=>{
+        const loc=local.find(s=>String(s.id)===String(fb.id));
+        if(loc&&loc.statut!==fb.statut){
+          const st=SIGNAL_STATUTS[fb.statut]||SIGNAL_STATUTS.nouveau;
+          showToast(st.ico+' Signalement '+fb.ref+' : '+st.label);
+        }
+        if(loc) loc.statut=fb.statut;
+      });
+      saveSignalements(local);
+      if(document.getElementById('signalListContainer')?.style.display==='block') renderSignalements();
     });
 
     // Écouter en temps réel les mises à jour de statut des demandes
