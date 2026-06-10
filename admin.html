@@ -995,10 +995,15 @@ function creerAvisTaxe(){
   };
   taxes.unshift(avis);
   saveTaxes(taxes);
-  if(fbDb) fbDb.ref('taxes/'+avis.id).set(avis).catch(()=>{});
+  if(fbDb){
+    fbDb.ref('taxes/'+avis.id).set(avis)
+      .then(()=>showToast('✅ Avis envoyé à Firebase — '+citoyen+' ('+tel+')'))
+      .catch(e=>showToast('⚠️ Sauvegardé localement uniquement — Firebase : '+e.message));
+  } else {
+    showToast('⚠️ Firebase non connecté — avis sauvegardé localement seulement');
+  }
   fermerFormTaxe();
   renderRevenus();
-  showToast('✅ Avis de taxe créé pour '+citoyen);
 }
 function validerPaiement(id){
   const taxes=getTaxes();

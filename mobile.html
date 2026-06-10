@@ -1527,31 +1527,47 @@ function renderTaxesMobile(){
 
 function actualiserTaxes(){
   const user=getUser();
-  if(!fbDb||!user||!user.tel){
-    renderTaxesMobile();
+  if(!user||!user.tel){
+    const c=document.getElementById('taxesListContainer');
+    if(c) c.innerHTML=`<div style="text-align:center;padding:24px;color:#dc2626;background:#fef2f2;border-radius:10px;margin-top:8px"><div style="font-size:1.5rem;margin-bottom:8px">⚠️</div><div style="font-weight:700;margin-bottom:4px">Numéro de téléphone manquant</div><div style="font-size:.8rem">Déconnectez-vous et reconnectez-vous en renseignant votre numéro de téléphone.</div></div>`;
     return;
   }
+  if(!fbDb){
+    initFirebase();
+    const c=document.getElementById('taxesListContainer');
+    if(c) c.innerHTML=`<div style="text-align:center;padding:24px;color:#b45309;background:#fffbeb;border-radius:10px;margin-top:8px"><div style="font-size:1.5rem;margin-bottom:8px">📡</div><div style="font-weight:700;margin-bottom:4px">Connexion Firebase en cours…</div><div style="font-size:.8rem">Patientez puis retapez "Charger mes taxes"</div></div>`;
+    return;
+  }
+  const telNorm=String(user.tel).replace(/\s/g,'');
   fbDb.ref('taxes').once('value').then(snap=>{
     const v=snap.val();
-    if(v){
-      const all=Object.values(v);
-      const mine=all.filter(t=>String(t.tel).replace(/\s/g,'')===String(user.tel).replace(/\s/g,''));
-      if(mine.length){
-        saveTaxesMobile(mine);
-        renderTaxesMobile();
-        const pending=mine.filter(t=>t.statut==='en_attente').length;
-        const badge=document.getElementById('taxeBadgeMobile');
-        if(badge){badge.style.display=pending?'inline':'none';badge.textContent=pending;}
-        showToast('✅ '+mine.length+' taxe(s) trouvée(s)');
-      } else {
-        saveTaxesMobile([]);
-        renderTaxesMobile();
-        showToast('ℹ️ Aucune taxe à votre numéro');
-      }
-    } else {
-      showToast('ℹ️ Aucune taxe enregistrée');
+    if(!v){
+      saveTaxesMobile([]);
+      renderTaxesMobile();
+      showToast('ℹ️ Aucune taxe dans la base de données');
+      return;
     }
-  }).catch(e=>showToast('❌ Erreur : '+e.message));
+    const all=Object.values(v);
+    const mine=all.filter(t=>String(t.tel).replace(/\s/g,'')=== telNorm);
+    if(mine.length){
+      saveTaxesMobile(mine);
+      renderTaxesMobile();
+      const pending=mine.filter(t=>t.statut==='en_attente').length;
+      const badge=document.getElementById('taxeBadgeMobile');
+      if(badge){badge.style.display=pending?'inline':'none';badge.textContent=pending;}
+      showToast('✅ '+mine.length+' taxe(s) trouvée(s)');
+    } else {
+      saveTaxesMobile([]);
+      const c=document.getElementById('taxesListContainer');
+      if(c) c.innerHTML=`<div style="background:#fef2f2;border-radius:10px;padding:20px;margin-top:8px">
+        <div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ Aucune taxe trouvée</div>
+        <div style="font-size:.82rem;color:#374151;margin-bottom:12px">Numéro recherché : <strong>${user.tel}</strong></div>
+        <div style="font-size:.8rem;color:#6b7280">Vérifiez que l'administrateur a bien utilisé ce numéro exact lors de la création de l'avis de taxe. Les espaces ne comptent pas.</div>
+      </div>`;
+    }
+  }).catch(e=>{
+    showToast('❌ Erreur Firebase : '+e.message);
+  });
 }
 
 function ouvrirPaiementTaxe(id){
