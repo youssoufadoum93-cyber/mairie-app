@@ -788,6 +788,16 @@ function chargerSignalementsFirebase(){
       <div class="kpi-card yellow"><div class="kpi-value">${nbEnCours}</div><div class="kpi-label">En cours</div></div>
       <div class="kpi-card green"><div class="kpi-value">${nbResolu}</div><div class="kpi-label">Résolus</div></div>`;
     // Sauvegarder en localStorage pour openSigModal
+    const normalized=rows.map(fb=>({
+      id:fb.id, ref:fb.ref||'SIG-'+fb.id,
+      type:fb.categ||fb.type||'autre',
+      desc:fb.desc||'', lieu:fb.lieu||'',
+      quartier:fb.arrondissement||fb.quartier||'Non précisé',
+      arrondissement:fb.arrondissement||fb.quartier||'',
+      citoyen:fb.citoyen||'Anonyme', tel:fb.tel||'',
+      date:fb.date||'', statut:fb.statut||'nouveau',
+      agent:fb.agent||null, photo:fb.photo||null
+    }));
     localStorage.setItem('signalements',JSON.stringify(normalized));
     if(tbody) tbody.innerHTML=rows.map((s,i)=>{
       const type=TYPES_SIG[s.type]||TYPES_SIG[s.categ]||{ico:'⚠️',label:s.type||s.categ||'Autre'};
