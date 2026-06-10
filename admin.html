@@ -1089,7 +1089,22 @@ function telechargerPiece(i){
 }
 function openDemModal(id){
   const d=getDems().find(x=>x.id===id);if(!d)return;
-  _demModalPieces=Array.isArray(d.pieces)?d.pieces:[];
+  // Debug: recharger depuis Firebase pour avoir les pieces a jour
+  if(fbDb){
+    fbDb.ref('demandes/'+id).once('value').then(snap=>{
+      const n=snap.val();
+      if(n&&n.pieces){
+        const arr=Array.isArray(n.pieces)?n.pieces:Object.values(n.pieces);
+        d.pieces=arr;
+      }
+      _chargerDemModal(d);
+    }).catch(()=>_chargerDemModal(d));
+  } else {
+    _chargerDemModal(d);
+  }
+}
+function _chargerDemModal(d){
+  _demModalPieces=Array.isArray(d.pieces)?d.pieces:(d.pieces?Object.values(d.pieces):[]);
   _demModalBlobUrls.forEach(u=>u&&URL.revokeObjectURL(u));
   _demModalBlobUrls=_demModalPieces.map(p=>p.type==='application/pdf'?_pdfBlobUrl(p.data):null);
   const donnees=d.donnees||{};
