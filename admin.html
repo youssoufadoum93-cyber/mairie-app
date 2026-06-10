@@ -485,11 +485,16 @@
             <div class="form-label">Quartiers ciblés</div>
             <div class="quartiers-check">
               <div class="qc-item"><input type="checkbox" id="qa0" value="tous"/><label for="qa0">🌍 Tous</label></div>
-              <div class="qc-item"><input type="checkbox" id="qa1" value="Centre-ville"/><label for="qa1">Centre-ville</label></div>
-              <div class="qc-item"><input type="checkbox" id="qa2" value="Quartier Nord"/><label for="qa2">Nord</label></div>
-              <div class="qc-item"><input type="checkbox" id="qa3" value="Quartier Sud"/><label for="qa3">Sud</label></div>
-              <div class="qc-item"><input type="checkbox" id="qa4" value="Marché Central"/><label for="qa4">Marché</label></div>
-              <div class="qc-item"><input type="checkbox" id="qa5" value="Zone Industrielle"/><label for="qa5">Zone Ind.</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa1" value="1er Arrondissement"/><label for="qa1">1er</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa2" value="2ème Arrondissement"/><label for="qa2">2ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa3" value="3ème Arrondissement"/><label for="qa3">3ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa4" value="4ème Arrondissement"/><label for="qa4">4ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa5" value="5ème Arrondissement"/><label for="qa5">5ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa6" value="6ème Arrondissement"/><label for="qa6">6ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa7" value="7ème Arrondissement"/><label for="qa7">7ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa8" value="8ème Arrondissement"/><label for="qa8">8ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa9" value="9ème Arrondissement"/><label for="qa9">9ème</label></div>
+              <div class="qc-item"><input type="checkbox" id="qa10" value="10ème Arrondissement"/><label for="qa10">10ème</label></div>
             </div>
           </div>
           <button class="btn-form btn-primary" style="width:100%" onclick="publierAlerte()">📤 Publier l'alerte</button>
@@ -526,14 +531,14 @@ const AGENTS_LIST=['Fatima Traoré','Jean-Pierre Mbeki','Amina Hassan','David Ko
 function initData(){
   if(!localStorage.getItem('signalements')){
     const sigs=[
-      {id:1,type:'route',citoyen:'Mamadou Koné',tel:'655-123',quartier:'Centre-ville',desc:'Nid de poule dangereux devant l\'école primaire N°3',lat:12.365,lng:15.044,statut:'en_cours',date:'2026-06-06',agent:'Fatima Traoré',photo:null},
-      {id:2,type:'eclairage',citoyen:'Aïcha Diabaté',tel:'677-234',quartier:'Marché Central',desc:'Lampadaire en panne rue du commerce depuis 3 semaines',lat:12.362,lng:15.041,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
-      {id:3,type:'ordures',citoyen:'Ibrahim Coulibaly',tel:'699-345',quartier:'Quartier Nord',desc:'Dépôt sauvage à l\'angle de la rue principale',lat:12.368,lng:15.048,statut:'résolu',date:'2026-06-05',agent:'Jean-Pierre Mbeki',photo:null},
-      {id:4,type:'eau',citoyen:'Marie Ngozi',tel:'611-456',quartier:'Quartier Sud',desc:'Fuite d\'eau importante sur la conduite rue Liberté',lat:12.360,lng:15.046,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
-      {id:5,type:'route',citoyen:'Ahmed Touré',tel:'622-567',quartier:'Zone Industrielle',desc:'Chaussée effondrée à l\'entrée de la zone industrielle',lat:12.370,lng:15.042,statut:'en_cours',date:'2026-06-04',agent:'Amina Hassan',photo:null},
-      {id:6,type:'eclairage',citoyen:'Fatou Diallo',tel:'633-678',quartier:'Résidentiel Est',desc:'Trois lampadaires en panne avenue des Palmiers',lat:12.363,lng:15.050,statut:'résolu',date:'2026-06-03',agent:'Reine Ouédraogo',photo:null},
-      {id:7,type:'securite',citoyen:'Paul Mwamba',tel:'644-789',quartier:'Centre-ville',desc:'Grille de protection cassée sur le canal, risque pour les enfants',lat:12.366,lng:15.043,statut:'nouveau',date:'2026-06-08',agent:null,photo:null},
-      {id:8,type:'ordures',citoyen:'Salimata Ba',tel:'655-890',quartier:'Quartier Nord',desc:'Poubelles non collectées depuis 10 jours',lat:12.369,lng:15.047,statut:'en_cours',date:'2026-06-06',agent:'David Koulibaly',photo:null},
+      {id:1,type:'route',citoyen:'Mamadou Koné',tel:'655-123',quartier:'1er Arrondissement',desc:'Nid de poule dangereux devant l\'école primaire N°3',lat:12.365,lng:15.044,statut:'en_cours',date:'2026-06-06',agent:'Fatima Traoré',photo:null},
+      {id:2,type:'eclairage',citoyen:'Aïcha Diabaté',tel:'677-234',quartier:'2ème Arrondissement',desc:'Lampadaire en panne rue du commerce depuis 3 semaines',lat:12.362,lng:15.041,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
+      {id:3,type:'ordures',citoyen:'Ibrahim Coulibaly',tel:'699-345',quartier:'3ème Arrondissement',desc:'Dépôt sauvage à l\'angle de la rue principale',lat:12.368,lng:15.048,statut:'résolu',date:'2026-06-05',agent:'Jean-Pierre Mbeki',photo:null},
+      {id:4,type:'eau',citoyen:'Marie Ngozi',tel:'611-456',quartier:'4ème Arrondissement',desc:'Fuite d\'eau importante sur la conduite rue Liberté',lat:12.360,lng:15.046,statut:'nouveau',date:'2026-06-07',agent:null,photo:null},
+      {id:5,type:'route',citoyen:'Ahmed Touré',tel:'622-567',quartier:'5ème Arrondissement',desc:'Chaussée effondrée à l\'entrée de la zone industrielle',lat:12.370,lng:15.042,statut:'en_cours',date:'2026-06-04',agent:'Amina Hassan',photo:null},
+      {id:6,type:'eclairage',citoyen:'Fatou Diallo',tel:'633-678',quartier:'6ème Arrondissement',desc:'Trois lampadaires en panne avenue des Palmiers',lat:12.363,lng:15.050,statut:'résolu',date:'2026-06-03',agent:'Reine Ouédraogo',photo:null},
+      {id:7,type:'securite',citoyen:'Paul Mwamba',tel:'644-789',quartier:'7ème Arrondissement',desc:'Grille de protection cassée sur le canal, risque pour les enfants',lat:12.366,lng:15.043,statut:'nouveau',date:'2026-06-08',agent:null,photo:null},
+      {id:8,type:'ordures',citoyen:'Salimata Ba',tel:'655-890',quartier:'8ème Arrondissement',desc:'Poubelles non collectées depuis 10 jours',lat:12.369,lng:15.047,statut:'en_cours',date:'2026-06-06',agent:'David Koulibaly',photo:null},
     ];
     localStorage.setItem('signalements',JSON.stringify(sigs));
   }
@@ -565,8 +570,8 @@ function initData(){
   if(!localStorage.getItem('alertes')){
     const today=new Date().toISOString().slice(0,10);
     const alertes=[
-      {id:1,type:'urgence',titre:'Alerte inondation — Quartier Nord',msg:'Des pluies importantes prévues cette nuit. Évacuez les zones basses.',quartiers:['Quartier Nord','Quartier Sud'],date:today,heure:'18:30',lien:'1234',auteur:'Admin'},
-      {id:2,type:'alerte',titre:'Interruption d\'eau — Maintenance réseau',msg:'Interruption prévue demain de 8h à 14h. Faites des réserves.',quartiers:['Centre-ville','Marché Central'],date:today,heure:'10:00',lien:'',auteur:'Admin'},
+      {id:1,type:'urgence',titre:'Alerte inondation — 3ème Arrondissement',msg:'Des pluies importantes prévues cette nuit. Évacuez les zones basses.',quartiers:['3ème Arrondissement','4ème Arrondissement'],date:today,heure:'18:30',lien:'1234',auteur:'Admin'},
+      {id:2,type:'alerte',titre:'Interruption d\'eau — Maintenance réseau',msg:'Interruption prévue demain de 8h à 14h. Faites des réserves.',quartiers:['1er Arrondissement','2ème Arrondissement'],date:today,heure:'10:00',lien:'',auteur:'Admin'},
       {id:3,type:'info',titre:'Bureau d\'état civil rénové',msg:'Ouvert du lundi au vendredi de 8h à 16h.',quartiers:['tous'],date:today,heure:'08:00',lien:'',auteur:'Admin'},
       {id:4,type:'evenement',titre:'Fête de la commune — 15 juin',msg:'Concert, expositions, jeux pour enfants. Entrée libre.',quartiers:['tous'],date:today,heure:'09:00',lien:'',auteur:'Admin'},
     ];
@@ -574,12 +579,12 @@ function initData(){
   }
   if(!localStorage.getItem('agents_data')){
     const ag=[
-      {id:1,nom:'Fatima Traoré',role:'Chef de bureau',actif:true,sigs_traites:28,dems_traitees:45,quartier:'Centre-ville'},
-      {id:2,nom:'Jean-Pierre Mbeki',role:'Agent signalements',actif:true,sigs_traites:19,dems_traitees:12,quartier:'Marché Central'},
-      {id:3,nom:'Amina Hassan',role:'Agent état civil',actif:true,sigs_traites:8,dems_traitees:67,quartier:'Quartier Nord'},
-      {id:4,nom:'David Koulibaly',role:'Agent voirie',actif:true,sigs_traites:34,dems_traitees:5,quartier:'Zone Industrielle'},
-      {id:5,nom:'Reine Ouédraogo',role:'Agent technique',actif:false,sigs_traites:15,dems_traitees:22,quartier:'Résidentiel Est'},
-      {id:6,nom:'Ibrahim Sarr',role:'Responsable fiscal',actif:true,sigs_traites:3,dems_traitees:8,quartier:'Quartier Sud'},
+      {id:1,nom:'Fatima Traoré',role:'Chef de bureau',actif:true,sigs_traites:28,dems_traitees:45,quartier:'1er Arrondissement'},
+      {id:2,nom:'Jean-Pierre Mbeki',role:'Agent signalements',actif:true,sigs_traites:19,dems_traitees:12,quartier:'2ème Arrondissement'},
+      {id:3,nom:'Amina Hassan',role:'Agent état civil',actif:true,sigs_traites:8,dems_traitees:67,quartier:'3ème Arrondissement'},
+      {id:4,nom:'David Koulibaly',role:'Agent voirie',actif:true,sigs_traites:34,dems_traitees:5,quartier:'4ème Arrondissement'},
+      {id:5,nom:'Reine Ouédraogo',role:'Agent technique',actif:false,sigs_traites:15,dems_traitees:22,quartier:'5ème Arrondissement'},
+      {id:6,nom:'Ibrahim Sarr',role:'Responsable fiscal',actif:true,sigs_traites:3,dems_traitees:8,quartier:'6ème Arrondissement'},
     ];
     localStorage.setItem('agents_data',JSON.stringify(ag));
   }
@@ -674,8 +679,8 @@ function renderCharts(){
   if(charts.activite) charts.activite.destroy();
   charts.activite=new Chart(document.getElementById('chartActivite'),{type:'line',data:{labels:days,datasets:[{label:'Signalements',data:sigData,borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.08)',fill:true,tension:.4},{label:'Demandes',data:demData,borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.08)',fill:true,tension:.4}]},options:{responsive:true,plugins:{legend:{labels:{font:{size:11}}}},scales:{y:{beginAtZero:true}}}});
 
-  const qartiers=['Centre-ville','Marché','Quartier Nord','Quartier Sud','Zone Ind.','Résidentiel'];
-  const qData=qartiers.map((q,i)=>sigs.filter(s=>s.quartier&&s.quartier.includes(q.split(' ')[0])).length||Math.floor(Math.random()*5+1));
+  const qartiers=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème'];
+  const qData=qartiers.map((q,i)=>sigs.filter(s=>s.quartier&&s.quartier.includes(q)).length||Math.floor(Math.random()*5+1));
   if(charts.quartiers) charts.quartiers.destroy();
   charts.quartiers=new Chart(document.getElementById('chartQuartiers'),{type:'bar',data:{labels:qartiers,datasets:[{data:qData,backgroundColor:['#1a56db','#16a34a','#d97706','#ea580c','#7c3aed','#0891b2'],borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},indexAxis:'y',scales:{x:{beginAtZero:true}}}});
 }

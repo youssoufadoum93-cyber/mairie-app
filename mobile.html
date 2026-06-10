@@ -454,8 +454,10 @@
         <div class="input-label">Quartier de résidence</div>
         <select class="input-field form-select" id="loginQuartier">
           <option value="">-- Sélectionner --</option>
-          <option>Centre-ville</option><option>Quartier Nord</option><option>Quartier Sud</option>
-          <option>Marché Central</option><option>Zone Industrielle</option><option>Résidentiel Est</option>
+          <option>1er Arrondissement</option><option>2ème Arrondissement</option><option>3ème Arrondissement</option>
+          <option>4ème Arrondissement</option><option>5ème Arrondissement</option><option>6ème Arrondissement</option>
+          <option>7ème Arrondissement</option><option>8ème Arrondissement</option><option>9ème Arrondissement</option>
+          <option>10ème Arrondissement</option>
         </select>
       </div>
       <button class="btn-login" onclick="doLogin()">Continuer →</button>
@@ -585,9 +587,11 @@
       <div class="quartier-pill">
         <span>📍</span>
         <select id="alertQuartier" onchange="renderAlertes()">
-          <option value="tous">Tous les quartiers</option>
-          <option>Centre-ville</option><option>Quartier Nord</option><option>Quartier Sud</option>
-          <option>Marché Central</option><option>Zone Industrielle</option><option>Résidentiel Est</option>
+          <option value="tous">Tous les arrondissements</option>
+          <option>1er Arrondissement</option><option>2ème Arrondissement</option><option>3ème Arrondissement</option>
+          <option>4ème Arrondissement</option><option>5ème Arrondissement</option><option>6ème Arrondissement</option>
+          <option>7ème Arrondissement</option><option>8ème Arrondissement</option><option>9ème Arrondissement</option>
+          <option>10ème Arrondissement</option>
         </select>
       </div>
       <div class="filter-scroll">
@@ -722,8 +726,10 @@
         <label class="form-label">Quartier concerné *</label>
         <select class="form-input form-select" id="dolQuartier">
           <option value="">-- Sélectionner --</option>
-          <option>Centre-ville</option><option>Quartier Nord</option><option>Quartier Sud</option>
-          <option>Marché Central</option><option>Zone Industrielle</option><option>Résidentiel Est</option>
+          <option>1er Arrondissement</option><option>2ème Arrondissement</option><option>3ème Arrondissement</option>
+          <option>4ème Arrondissement</option><option>5ème Arrondissement</option><option>6ème Arrondissement</option>
+          <option>7ème Arrondissement</option><option>8ème Arrondissement</option><option>9ème Arrondissement</option>
+          <option>10ème Arrondissement</option>
         </select>
         <label class="form-label">Personnes affectées (estimation)</label>
         <select class="form-input form-select" id="dolPersonnes">
@@ -836,9 +842,9 @@ function getDols(){
   if(r) return JSON.parse(r);
   const today=new Date().toISOString().slice(0,10);
   const demo=[
-    {id:1,ref:'DOL-2026-0001',cat:'voirie',titre:'Nid de poule dangereux devant l\'école',desc:'Grand nid de poule à l\'entrée de l\'école primaire N°3. Très dangereux pour les enfants et les motos.',quartier:'Centre-ville',urgence:'haute',personnes:'100+',statut:'en_cours',date:today,lat:12.365,lng:15.044,photo:null,citoyen:'Mamadou Koné',timeline:[{date:today,label:'Doléance soumise',note:'Enregistrée par le système',type:'submit'},{date:today,label:'Assignée à un agent',note:'Agent Fatima Traoré assigné',type:'assign'}]},
-    {id:2,ref:'DOL-2026-0002',cat:'eau',titre:'Fuite d\'eau rue de la Liberté',desc:'Fuite d\'eau importante sur la conduite principale. L\'eau coule depuis 3 jours.',quartier:'Quartier Sud',urgence:'haute',personnes:'21-100',statut:'nouveau',date:today,lat:12.360,lng:15.046,photo:null,citoyen:'Marie Ngozi',timeline:[{date:today,label:'Doléance soumise',note:'En attente de traitement',type:'submit'}]},
-    {id:3,ref:'DOL-2026-0003',cat:'eclairage',titre:'Lampadaires en panne avenue des Palmiers',desc:'Trois lampadaires en panne. Le secteur est dans l\'obscurité totale la nuit.',quartier:'Résidentiel Est',urgence:'normale',personnes:'21-100',statut:'résolu',date:'2026-06-05',lat:12.363,lng:15.050,photo:null,citoyen:'Fatou Diallo',timeline:[{date:'2026-06-05',label:'Doléance soumise',note:'',type:'submit'},{date:'2026-06-06',label:'Prise en charge',note:'Agent technique assigné',type:'assign'},{date:'2026-06-07',label:'Problème résolu',note:'Les 3 lampadaires ont été réparés',type:'resolve'}]},
+    {id:1,ref:'DOL-2026-0001',cat:'voirie',titre:'Nid de poule dangereux devant l\'école',desc:'Grand nid de poule à l\'entrée de l\'école primaire N°3. Très dangereux pour les enfants et les motos.',quartier:'1er Arrondissement',urgence:'haute',personnes:'100+',statut:'en_cours',date:today,lat:12.365,lng:15.044,photo:null,citoyen:'Mamadou Koné',timeline:[{date:today,label:'Doléance soumise',note:'Enregistrée par le système',type:'submit'},{date:today,label:'Assignée à un agent',note:'Agent Fatima Traoré assigné',type:'assign'}]},
+    {id:2,ref:'DOL-2026-0002',cat:'eau',titre:'Fuite d\'eau rue de la Liberté',desc:'Fuite d\'eau importante sur la conduite principale. L\'eau coule depuis 3 jours.',quartier:'2ème Arrondissement',urgence:'haute',personnes:'21-100',statut:'nouveau',date:today,lat:12.360,lng:15.046,photo:null,citoyen:'Marie Ngozi',timeline:[{date:today,label:'Doléance soumise',note:'En attente de traitement',type:'submit'}]},
+    {id:3,ref:'DOL-2026-0003',cat:'eclairage',titre:'Lampadaires en panne avenue des Palmiers',desc:'Trois lampadaires en panne. Le secteur est dans l\'obscurité totale la nuit.',quartier:'3ème Arrondissement',urgence:'normale',personnes:'21-100',statut:'résolu',date:'2026-06-05',lat:12.363,lng:15.050,photo:null,citoyen:'Fatou Diallo',timeline:[{date:'2026-06-05',label:'Doléance soumise',note:'',type:'submit'},{date:'2026-06-06',label:'Prise en charge',note:'Agent technique assigné',type:'assign'},{date:'2026-06-07',label:'Problème résolu',note:'Les 3 lampadaires ont été réparés',type:'resolve'}]},
   ];
   localStorage.setItem('doleances',JSON.stringify(demo));
   return demo;
@@ -964,7 +970,7 @@ function goLogin(){
 // ========================= LOGIN =========================
 function doLogin(guest=false){
   if(guest){
-    const u={nom:'Visiteur',tel:'',quartier:'Centre-ville',guest:true};
+    const u={nom:'Visiteur',tel:'',quartier:'1er Arrondissement',guest:true};
     saveUser(u);launchApp(u);return;
   }
   const nom=document.getElementById('loginNom').value.trim();
